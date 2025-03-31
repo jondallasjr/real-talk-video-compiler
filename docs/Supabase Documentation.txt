@@ -1,0 +1,2597 @@
+Rest API
+Overview
+
+Supabase auto-generates an API directly from your database schema allowing you to connect to your database through a restful interface, directly from the browser.
+
+The API is auto-generated from your database and is designed to get you building as fast as possible, without writing a single line of code.
+
+You can use them directly from the browser (two-tier architecture), or as a complement to your own API server (three-tier architecture).
+
+Features #
+Supabase provides a RESTful API using PostgREST. This is a very thin API layer on top of Postgres.
+It exposes everything you need from a CRUD API at the URL https://<project_ref>.supabase.co/rest/v1/.
+
+The REST interface is automatically reflected from your database's schema and is:
+
+Instant and auto-generated.
+As you update your database the changes are immediately accessible through your API.
+Self documenting.
+Supabase generates documentation in the Dashboard which updates as you make database changes.
+Secure.
+The API is configured to work with PostgreSQL's Row Level Security, provisioned behind an API gateway with key-auth enabled.
+Fast.
+Our benchmarks for basic reads are more than 300% faster than Firebase. The API is a very thin layer on top of Postgres, which does most of the heavy lifting.
+Scalable.
+The API can serve thousands of simultaneous requests, and works well for Serverless workloads.
+The reflected API is designed to retain as much of Postgres' capability as possible including:
+
+Basic CRUD operations (Create/Read/Update/Delete)
+Arbitrarily deep relationships among tables/views, functions that return table types can also nest related tables/views.
+Works with Postgres Views, Materialized Views and Foreign Tables
+Works with Postgres Functions
+User defined computed columns and computed relationships
+The Postgres security model - including Row Level Security, Roles, and Grants.
+The REST API resolves all requests to a single SQL statement leading to fast response times and high throughput.
+
+Reference:
+
+Docs
+Source Code
+API URL and keys#
+You can find the API URL and Keys in the Dashboard.
+
+Quick Start
+Build an API route in less than 2 minutes.
+
+Create your first API route by creating a table called todos to store tasks.
+
+Let's create our first REST route which we can query using cURL or the browser.
+
+We'll create a database table called todos for storing tasks. This creates a corresponding API route /rest/v1/todos which can accept GET, POST, PATCH, & DELETE requests.
+
+1
+Set up a Supabase project with a 'todos' table
+Create a new project in the Supabase Dashboard.
+
+After your project is ready, create a table in your Supabase database. You can do this with either the Table interface or the SQL Editor.
+
+
+SQL
+
+Dashboard
+-- Create a table called "todos"
+-- with a column to store tasks.
+create table todos (
+  id serial primary key,
+  task text
+);
+2
+Allow public access
+Let's turn on Row Level Security for this table and allow public access.
+
+-- Turn on security
+alter table "todos"
+enable row level security;
+-- Allow anonymous access
+create policy "Allow public access"
+  on todos
+  for select
+  to anon
+  using (true);
+3
+Insert some dummy data
+Now we can add some data to our table which we can access through our API.
+
+insert into todos (task)
+values
+  ('Create tables'),
+  ('Enable security'),
+  ('Add data'),
+  ('Fetch data from the API');
+4
+Fetch the data
+Find your API URL and Keys in your Dashboard API Settings. You can now query your "todos" table by appending /rest/v1/todos to the API URL.
+
+Copy this block of code, substitute <PROJECT_REF> and <ANON_KEY>, then run it from a terminal.
+
+curl 'https://<PROJECT_REF>.supabase.co/rest/v1/todos' \
+-H "apikey: <ANON_KEY>" \
+-H "Authorization: Bearer <ANON_KEY>"
+Bonus#
+There are several options for accessing your data:
+
+Browser#
+You can query the route in your browser, by appending the anon key as a query parameter:
+
+https://<PROJECT_REF>.supabase.co/rest/v1/todos?apikey=<ANON_KEY>
+
+Client libraries#
+We provide a number of Client Libraries.
+
+
+JavaScript
+
+Dart
+
+Python
+
+Swift
+const { data, error } = await supabase.from('todos').select()
+
+Client Libraries
+Client Libraries
+
+Supabase provides client libraries for the REST and Realtime APIs. Some libraries are officially supported, and some are contributed by the community.
+
+Official libraries#
+Language	Source Code	Documentation
+Javascript/Typescript	supabase-js	Docs
+Dart/Flutter	supabase-flutter	Docs
+Swift	supabase-swift	Docs
+Python	supabase-py	Docs
+Community libraries#
+Language	Source Code	Documentation
+C#	supabase-csharp	Docs
+Go	supabase-go	
+Kotlin	supabase-kt	Docs
+Ruby	supabase-rb	
+Godot Engine (GDScript)	supabase-gdscript	
+
+Auto-generated documentation
+
+Supabase generates documentation in the Dashboard which updates as you make database changes.
+
+Go to the API page in the Dashboard.
+Select any table under Tables and Views in the sidebar.
+Switch between the JavaScript and the cURL docs using the tabs.
+
+Generating TypeScript Types
+
+How to generate types for your API and Supabase libraries.
+
+Supabase APIs are generated from your database, which means that we can use database introspection to generate type-safe API definitions.
+
+Generating types from project dashboard#
+Supabase allows you to generate and download TypeScript types directly from the project dashboard.
+
+Generating types using Supabase CLI#
+The Supabase CLI is a single binary Go application that provides everything you need to setup a local development environment.
+
+You can install the CLI via npm or other supported package managers. The minimum required version of the CLI is v1.8.1.
+
+npm i supabase@">=1.8.1" --save-dev
+Login with your Personal Access Token:
+
+npx supabase login
+Before generating types, ensure you initialize your Supabase project:
+
+npx supabase init
+Generate types for your project to produce the database.types.ts file:
+
+npx supabase gen types typescript --project-id "$PROJECT_REF" --schema public > database.types.ts
+or in case of local development:
+
+npx supabase gen types typescript --local > database.types.ts
+These types are generated from your database schema. Given a table public.movies, the generated types will look like:
+
+create table public.movies (
+  id bigint generated always as identity primary key,
+  name text not null,
+  data jsonb null
+);
+export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[]
+export interface Database {
+  public: {
+    Tables: {
+      movies: {
+        Row: {
+          // the data expected from .select()
+          id: number
+          name: string
+          data: Json | null
+        }
+        Insert: {
+          // the data to be passed to .insert()
+          id?: never // generated columns must not be supplied
+          name: string // `not null` columns with no default must be supplied
+          data?: Json | null // nullable columns can be omitted
+        }
+        Update: {
+          // the data to be passed to .update()
+          id?: never
+          name?: string // `not null` columns are optional on .update()
+          data?: Json | null
+        }
+      }
+    }
+  }
+}
+Using TypeScript type definitions#
+You can supply the type definitions to supabase-js like so:
+
+import { createClient } from '@supabase/supabase-js'
+import { Database } from './database.types'
+const supabase = createClient<Database>(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY)
+Helper types for tables and joins#
+You can use the following helper types to make the generated TypeScript types easier to use.
+
+Sometimes the generated types are not what you expect. For example, a view's column may show up as nullable when you expect it to be not null. Using type-fest, you can override the types like so:
+
+export type Json = // ...
+export interface Database {
+  // ...
+}
+import { MergeDeep } from 'type-fest'
+import { Database as DatabaseGenerated } from './database-generated.types'
+export { Json } from './database-generated.types'
+// Override the type for a specific column in a view:
+export type Database = MergeDeep<
+  DatabaseGenerated,
+  {
+    public: {
+      Views: {
+        movies_view: {
+          Row: {
+            // id is a primary key in public.movies, so it must be `not null`
+            id: number
+          }
+        }
+      }
+    }
+  }
+>
+To use MergeDeep, set compilerOptions.strictNullChecks to true in your tsconfig.json.
+
+You can also override the type of an individual successful response if needed:
+
+// Partial type override allows you to only override some of the properties in your results
+const { data } = await supabase.from('countries').select().overrideTypes<Array<{ id: string }>>()
+// For a full replacement of the original return type use the `{ merge: false }` property as second argument
+const { data } = await supabase
+  .from('countries')
+  .select()
+  .overrideTypes<Array<{ id: string }>, { merge: false }>()
+// Use it with `maybeSingle` or `single`
+const { data } = await supabase.from('countries').select().single().overrideTypes<{ id: string }>()
+Type shorthands#
+The generated types provide shorthands for accessing tables and enums.
+
+import { Database, Tables, Enums } from "./database.types.ts";
+// Before 😕
+let movie: Database['public']['Tables']['movies']['Row'] = // ...
+// After 😍
+let movie: Tables<'movies'>
+Response types for complex queries#
+supabase-js always returns a data object (for success), and an error object (for unsuccessful requests).
+
+These helper types provide the result types from any query, including nested types for database joins.
+
+Given the following schema with a relation between cities and countries:
+
+create table countries (
+  "id" serial primary key,
+  "name" text
+);
+create table cities (
+  "id" serial primary key,
+  "name" text,
+  "country_id" int references "countries"
+);
+We can get the nested CountriesWithCities type like this:
+
+import { QueryResult, QueryData, QueryError } from '@supabase/supabase-js'
+const countriesWithCitiesQuery = supabase.from('countries').select(`
+  id,
+  name,
+  cities (
+    id,
+    name
+  )
+`)
+type CountriesWithCities = QueryData<typeof countriesWithCitiesQuery>
+const { data, error } = await countriesWithCitiesQuery
+if (error) throw error
+const countriesWithCities: CountriesWithCities = data
+Update types automatically with GitHub Actions#
+One way to keep your type definitions in sync with your database is to set up a GitHub action that runs on a schedule.
+
+Add the following script to your package.json to run it using npm run update-types
+
+"update-types": "npx supabase gen types --lang=typescript --project-id \"$PROJECT_REF\" > database.types.ts"
+Create a file .github/workflows/update-types.yml with the following snippet to define the action along with the environment variables. This script will commit new type changes to your repo every night.
+
+name: Update database types
+on:
+  schedule:
+    # sets the action to run daily. You can modify this to run the action more or less frequently
+    - cron: '0 0 * * *'
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.ACCESS_TOKEN }}
+      PROJECT_REF: <your-project-id>
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm run update-types
+      - name: check for file changes
+        id: git_status
+        run: |
+          echo "status=$(git status -s)" >> $GITHUB_OUTPUT
+      - name: Commit files
+        if: ${{contains(steps.git_status.outputs.status, ' ')}}
+        run: |
+          git add database.types.ts
+          git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git commit -m "Update database types" -a
+      - name: Push changes
+        if: ${{contains(steps.git_status.outputs.status, ' ')}}
+        uses: ad-m/github-push-action@master
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          branch: ${{ github.ref }}
+Alternatively, you can use a community-supported GitHub action: generate-supabase-db-types-github-action.
+
+Resources#
+Generating Supabase types with GitHub Actions
+
+Tools
+SQL to REST API Translator
+Translate SQL queries to HTTP requests and Supabase client code
+
+Sometimes it's challenging to translate SQL queries to the equivalent PostgREST request or Supabase client code. Use this tool to help with this translation.
+
+PostgREST supports a subset of SQL, so not all SQL queries will translate.
+
+Enter SQL to translate
+12345678910111213
+select
+  title,
+  description
+from
+  books
+where
+  description ilike '%cheese%'
+order by
+  title desc
+limit
+
+Choose language to translate to
+
+cURL
+
+HTTP
+
+JavaScript
+curl -G http://localhost:54321/rest/v1/books \
+  -d "select=title,description" \
+  -d "description=ilike.*cheese*" \
+  -d "order=title.desc" \
+  -d "limit=5" \
+  -d "offset=10"
+
+FAQs
+
+What is curl?
+
+
+What do -G and -d do?
+
+
+Why is % getting converted to *?
+
+Guides
+Creating API Routes
+Creating API Routes
+
+API routes are automatically created when you create Postgres Tables, Views, or Functions.
+
+Create a table#
+Let's create our first API route by creating a table called todos to store tasks.
+This creates a corresponding route todos which can accept GET, POST, PATCH, & DELETE requests.
+
+
+Dashboard
+
+SQL
+Go to the Table editor page in the Dashboard.
+Click New Table and create a table with the name todos.
+Click Save.
+Click New Column and create a column with the name task and type text.
+Click Save.
+API URL and keys#
+Every Supabase project has a unique API URL. Your API is secured behind an API gateway which requires an API Key for every request.
+
+Go to the Settings page in the Dashboard.
+Click API in the sidebar.
+Find your API URL, anon, and service_role keys on this page.
+The REST API is accessible through the URL https://<project_ref>.supabase.co/rest/v1
+
+Both of these routes require the anon key to be passed through an apikey header.
+
+Using the API#
+You can interact with your API directly via HTTP requests, or you can use the client libraries which we provide.
+
+Let's see how to make a request to the todos table which we created in the first step,
+using the API URL (SUPABASE_URL) and Key (SUPABASE_ANON_KEY) we provided:
+
+
+Javascript
+
+cURL
+// Initialize the JS client
+import { createClient } from '@supabase/supabase-js'
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+// Make a request
+const { data: todos, error } = await supabase.from('todos').select('*')
+
+JS Reference: select(),
+insert(),
+update(),
+upsert(),
+delete(),
+rpc() (call Postgres functions).
+
+How API Keys Work
+Understanding API Keys
+
+Supabase provides two default keys when you create a project: an anon key, and a service_role key. You can find both keys in the API Settings.
+
+The data APIs are designed to work with Postgres Row Level Security (RLS). These keys both map to Postgres roles. You can find an anon user and a service_role user in the Roles section of the dashboard.
+
+The keys are both long-lived JWTs. If you decode these keys, you will see that they contain the "role", an "issued date", and an "expiry date" ~10 years in the future.
+
+{
+  "role": "anon",
+  "iat": 1625137684,
+  "exp": 1940713684
+}
+The anon key#
+The anon key has very few privileges. You can use it in your RLS policies to allow unauthenticated access. For example, this policy will allow unauthenticated access to the profiles table:
+
+create policy "Allow public access" on profiles to anon for
+select
+  using (true);
+And similarly for disallowing access:
+
+create policy "Disallow public access" on profiles to anon for
+select
+  using (false);
+If you are using Supabase Auth, then the anon role will automatically update to authenticated once a user is logged in:
+
+create policy "Allow access to authenticated users" on profiles to authenticated for
+select
+  using (true);
+The service_role key#
+The "service_role" is a predefined Postgres role with elevated privileges, designed to perform various administrative and service-related tasks. It can bypass Row Level Security, so it should only be used on a private server.
+
+Never expose the service_role key in a browser or anywhere where a user can see it.
+
+A common use case for the service_role key is running data analytics jobs on the backend. To support joins on user id, it is often useful to grant the service role read access to auth.users table.
+
+grant
+select
+  on table auth.users to service_role;
+
+We have partnered with GitHub to scan for Supabase service_role keys pushed to public repositories.
+If they detect any keys with service_role privileges being pushed to GitHub, they will forward the API key to us, so that we can automatically revoke the detected secrets and notify you, protecting your data against malicious actors.
+
+Securing Your API 
+Securing your API
+
+The data APIs are designed to work with Postgres Row Level Security (RLS). If you use Supabase Auth, you can restrict data based on the logged-in user.
+
+To control access to your data, you can use Policies.
+
+Enabling row level security#
+Any table you create in the public schema will be accessible via the Supabase Data API.
+
+To restrict access, enable Row Level Security (RLS) on all tables, views, and functions in the public schema. You can then write RLS policies to grant users access to specific database rows or functions based on their authentication token.
+
+Always enable Row Level Security on tables, views, and functions in the public schema to protect your data.
+
+Any table created through the Supabase Dashboard will have RLS enabled by default. If you created the tables via the SQL editor or via another way, enable RLS like so:
+
+
+Dashboard
+
+SQL
+Go to the Authentication > Policies page in the Dashboard.
+Select Enable RLS to enable Row Level Security.
+With RLS enabled, you can create Policies that allow or disallow users to access and update data. We provide a detailed guide for creating Row Level Security Policies in our Authorization documentation.
+
+Any table without RLS enabled in the public schema will be accessible to the public, using the anon role. Always make sure that RLS is enabled or that you've got other security measures in place to avoid unauthorized access to your project's data!
+
+Disable the API or restrict to custom schema#
+If you don't use the Data API, or if you don't want to expose the public schema, you can either disable it entirely or change the automatically exposed schema to one of your choice. See Hardening the Data API for instructions.
+
+Enforce additional rules on each request#
+Using Row Level Security policies may not always be adequate or sufficient to protect APIs.
+
+Here are some common situations where additional protections are necessary:
+
+Enforcing per-IP or per-user rate limits.
+Checking custom or additional API keys before allowing further access.
+Rejecting requests after exceeding a quota or requiring payment.
+Disallowing direct access to certain tables, views or functions in the public schema.
+You can build these cases in your application by creating a Postgres function that will read information from the request and perform additional checks, such as counting the number of requests received or checking that an API key is already registered in your database before serving the response.
+
+Define a function like so:
+
+create function public.check_request()
+  returns void
+  language plpgsql
+  security definer
+  as $$
+begin
+  -- your logic here
+end;
+$$;
+And register it to run on every Data API request using:
+
+alter role authenticator
+  set pgrst.db_pre_request = 'public.check_request';
+This configures the public.check_request function to run on every Data API request. To have the changes take effect, you should run:
+
+notify pgrst, 'reload config';
+Inside the function you can perform any additional checks on the request headers or JWT and raise an exception to prevent the request from completing. For example, this exception raises a HTTP 402 Payment Required response with a hint and additional X-Powered-By header:
+
+raise sqlstate 'PGRST' using
+  message = json_build_object(
+    'code',    '123',
+    'message', 'Payment Required',
+    'details', 'Quota exceeded',
+    'hint',    'Upgrade your plan')::text,
+  detail = json_build_object(
+    'status',  402,
+    'headers', json_build_object(
+      'X-Powered-By', 'Nerd Rage'))::text;
+When raised within the public.check_request function, the resulting HTTP response will look like:
+
+HTTP/1.1 402 Payment Required
+Content-Type: application/json; charset=utf-8
+X-Powered-By: Nerd Rage
+{
+  "message": "Payment Required",
+  "details": "Quota exceeded",
+  "hint": "Upgrade your plan",
+  "code": "123"
+}
+Use the JSON operator functions to build rich and dynamic responses from exceptions.
+
+If you use a custom HTTP status code like 419, you can supply the status_text key in the detail clause of the exception to describe the HTTP status.
+
+If you're using PostgREST version 11 or lower (find out your PostgREST version) a different and less powerful syntax needs to be used.
+
+Accessing request information#
+Like with RLS policies, you can access information about the request by using the current_setting() Postgres function. Here are some examples on how this works:
+
+-- To get all the headers sent in the request
+SELECT current_setting('request.headers', true)::json;
+-- To get a single header, you can use JSON arrow operators
+SELECT current_setting('request.headers', true)::json->>'user-agent';
+-- Access Cookies
+SELECT current_setting('request.cookies', true)::json;
+current_setting()	Example	Description
+request.method	GET, HEAD, POST, PUT, PATCH, DELETE	Request's method
+request.path	table	Table's path
+request.path	view	View's path
+request.path	rpc/function	Functions's path
+request.headers	{ "User-Agent": "...", ... }	JSON object of the request's headers
+request.cookies	{ "cookieA": "...", "cookieB": "..." }	JSON object of the request's cookies
+request.jwt	{ "sub": "a7194ea3-...", ... }	JSON object of the JWT payload
+To access the IP address of the client look up the X-Forwarded-For header in the request.headers setting. For example:
+
+SELECT split_part(
+  current_setting('request.headers', true)::json->>'x-forwarded-for',
+  ',', 1); -- takes the client IP before the first comma (,)
+Read more about PostgREST's pre-request function.
+
+Examples#
+
+Rate limit per IP
+
+Use additional API keys
+You can only rate-limit POST, PUT, PATCH and DELETE requests. This is because GET and HEAD requests run in read-only mode, and will be served by Read Replicas which do not support writing to the database.
+
+Outline:
+
+A new row is added to a private.rate_limits table each time a modifying action is done to the database containing the IP address and the timestamp of the action.
+If there are over 100 requests from the same IP address in the last 5 minutes, the request is rejected with a HTTP 420 code.
+Create the table:
+
+create table private.rate_limits (
+  ip inet,
+  request_at timestamp
+);
+-- add an index so that lookups are fast
+create index rate_limits_ip_request_at_idx on private.rate_limits (ip, request_at desc);
+The private schema is used as it cannot be accessed over the API!
+
+Create the public.check_request function:
+
+create function public.check_request()
+  returns void
+  language plpgsql
+  security definer
+  as $$
+declare
+  req_method text := current_setting('request.method', true);
+  req_ip inet := split_part(
+    current_setting('request.headers', true)::json->>'x-forwarded-for',
+    ',', 1)::inet;
+  count_in_five_mins integer;
+begin
+  if req_method = 'GET' or req_method = 'HEAD' or req_method is null then
+    -- rate limiting can't be done on GET and HEAD requests
+    return;
+  end if;
+  select
+    count(*) into count_in_five_mins
+  from private.rate_limits
+  where
+    ip = req_ip and request_at between now() - interval '5 minutes' and now();
+  if count_in_five_mins > 100 then
+    raise sqlstate 'PGRST' using
+      message = json_build_object(
+        'message', 'Rate limit exceeded, try again after a while')::text,
+      detail = json_build_object(
+        'status',  420,
+        'status_text', 'Enhance Your Calm')::text;
+  end if;
+  insert into private.rate_limits (ip, request_at) values (req_ip, now());
+end;
+  $$;
+
+Finally, configure the public.check_request() function to run on every Data API request:
+
+alter role authenticator
+  set pgrst.db_pre_request = 'public.check_request';
+notify pgrst, 'reload config';
+To clear old entries in the private.rate_limits table, set up a pg_cron job to clean them up.
+
+Working With Your Data
+Managing Tables, Views, and Data
+Tables and Data
+
+Tables are where you store your data.
+
+Tables are similar to excel spreadsheets. They contain columns and rows.
+For example, this table has 3 "columns" (id, name, description) and 4 "rows" of data:
+
+id	name	description
+1	The Phantom Menace	Two Jedi escape a hostile blockade to find allies and come across a young boy who may bring balance to the Force.
+2	Attack of the Clones	Ten years after the invasion of Naboo, the Galactic Republic is facing a Separatist movement.
+3	Revenge of the Sith	As Obi-Wan pursues a new threat, Anakin acts as a double agent between the Jedi Council and Palpatine and is lured into a sinister plan to rule the galaxy.
+4	Star Wars	Luke Skywalker joins forces with a Jedi Knight, a cocky pilot, a Wookiee and two droids to save the galaxy from the Empire's world-destroying battle station.
+There are a few important differences from a spreadsheet, but it's a good starting point if you're new to Relational databases.
+
+Creating tables#
+When creating a table, it's best practice to add columns at the same time.
+
+Tables and columns
+
+You must define the "data type" of each column when it is created. You can add and remove columns at any time after creating a table.
+
+Supabase provides several options for creating tables. You can use the Dashboard or create them directly using SQL.
+We provide a SQL editor within the Dashboard, or you can connect to your database
+and run the SQL queries yourself.
+
+
+Dashboard
+
+SQL
+Go to the Table Editor page in the Dashboard.
+Click New Table and create a table with the name todos.
+Click Save.
+Click New Column and create a column with the name task and type text.
+Click Save.
+When naming tables, use lowercase and underscores instead of spaces (e.g., table_name, not Table Name).
+
+Columns#
+You must define the "data type" when you create a column.
+
+Data types#
+Every column is a predefined type. Postgres provides many default types, and you can even design your own (or use extensions) if the default types don't fit your needs. You can use any data type that Postgres supports via the SQL editor. We only support a subset of these in the Table Editor in an effort to keep the experience simple for people with less experience with databases.
+
+Show/Hide default data types
+
+You can "cast" columns from one type to another, however there can be some incompatibilities between types.
+For example, if you cast a timestamp to a date, you will lose all the time information that was previously saved.
+
+Primary keys#
+A table can have a "primary key" - a unique identifier for every row of data. A few tips for Primary Keys:
+
+It's recommended to create a Primary Key for every table in your database.
+You can use any column as a primary key, as long as it is unique for every row.
+It's common to use a uuid type or a numbered identity column as your primary key.
+create table movies (
+  id bigint generated always as identity primary key
+);
+In the example above, we have:
+
+created a column called id
+assigned the data type bigint
+instructed the database that this should be generated always as identity, which means that Postgres will automatically assign a unique number to this column.
+Because it's unique, we can also use it as our primary key.
+We could also use generated by default as identity, which would allow us to insert our own unique values.
+
+create table movies (
+  id bigint generated by default as identity primary key
+);
+Loading data#
+There are several ways to load data in Supabase. You can load data directly into the database or using the APIs.
+Use the "Bulk Loading" instructions if you are loading large data sets.
+
+Basic data loading#
+
+SQL
+
+JavaScript
+
+Dart
+
+Swift
+
+Python
+
+Kotlin
+insert into movies
+  (name, description)
+values
+  (
+    'The Empire Strikes Back',
+    'After the Rebels are brutally overpowered by the Empire on the ice planet Hoth, Luke Skywalker begins Jedi training with Yoda.'
+  ),
+  (
+    'Return of the Jedi',
+    'After a daring mission to rescue Han Solo from Jabba the Hutt, the Rebels dispatch to Endor to destroy the second Death Star.'
+  );
+Bulk data loading#
+When inserting large data sets it's best to use PostgreSQL's COPY command.
+This loads data directly from a file into a table. There are several file formats available for copying data: text, CSV, binary, JSON, etc.
+
+For example, if you wanted to load a CSV file into your movies table:
+
+"The Empire Strikes Back", "After the Rebels are brutally overpowered by the Empire on the ice planet Hoth, Luke Skywalker begins Jedi training with Yoda."
+"Return of the Jedi", "After a daring mission to rescue Han Solo from Jabba the Hutt, the Rebels dispatch to Endor to destroy the second Death Star."
+You would connect to your database directly and load the file with the COPY command:
+
+psql -h DATABASE_URL -p 5432 -d postgres -U postgres \
+  -c "\COPY movies FROM './movies.csv';"
+Additionally use the DELIMITER, HEADER and FORMAT options as defined in the Postgres COPY docs.
+
+psql -h DATABASE_URL -p 5432 -d postgres -U postgres \
+  -c "\COPY movies FROM './movies.csv' WITH DELIMITER ',' CSV HEADER"
+If you receive an error FATAL: password authentication failed for user "postgres", reset your database password in the Database Settings and try again.
+
+Joining tables with foreign keys#
+Tables can be "joined" together using Foreign Keys.
+
+Foreign Keys
+
+This is where the "Relational" naming comes from, as data typically forms some sort of relationship.
+
+In our "movies" example above, we might want to add a "category" for each movie (for example, "Action", or "Documentary").
+Let's create a new table called categories and "link" our movies table.
+
+create table categories (
+  id bigint generated always as identity primary key,
+  name text -- category name
+);
+alter table movies
+  add column category_id bigint references categories;
+You can also create "many-to-many" relationships by creating a "join" table.
+For example if you had the following situations:
+
+You have a list of movies.
+A movie can have several actors.
+An actor can perform in several movies.
+
+Dashboard
+
+SQL
+
+Schemas#
+Tables belong to schemas. Schemas are a way of organizing your tables, often for security reasons.
+
+Schemas and tables
+
+If you don't explicitly pass a schema when creating a table, Postgres will assume that you want to create the table in the public schema.
+
+We can create schemas for organizing tables. For example, we might want a private schema which is hidden from our API:
+
+create schema private;
+Now we can create tables inside the private schema:
+
+create table private.salaries (
+  id bigint generated by default as identity primary key,
+  salary bigint not null,
+  actor_id bigint not null references public.actors
+);
+Views#
+A View is a convenient shortcut to a query. Creating a view does not involve new tables or data. When run, an underlying query is executed, returning its results to the user.
+
+Say we have the following tables from a database of a university:
+
+students
+
+id	name	type
+1	Princess Leia	undergraduate
+2	Yoda	graduate
+3	Anakin Skywalker	graduate
+courses
+
+id	title	code
+1	Introduction to Postgres	PG101
+2	Authentication Theories	AUTH205
+3	Fundamentals of Supabase	SUP412
+grades
+
+id	student_id	course_id	result
+1	1	1	B+
+2	1	3	A+
+3	2	2	A
+4	3	1	A-
+5	3	2	A
+6	3	3	B-
+Creating a view consisting of all the three tables will look like this:
+
+create view transcripts as
+    select
+        students.name,
+        students.type,
+        courses.title,
+        courses.code,
+        grades.result
+    from grades
+    left join students on grades.student_id = students.id
+    left join courses on grades.course_id = courses.id;
+grant all on table transcripts to authenticated;
+Once done, we can now access the underlying query with:
+
+select * from transcripts;
+View security#
+By default, views are accessed with their creator's permission ("security definer"). If a privileged role creates a view, others accessing it will use that role's elevated permissions. To enforce row level security policies, define the view with the "security invoker" modifier.
+
+-- alter a security_definer view to be security_invoker
+alter view <view name>
+set (security_invoker = true);
+-- create a view with the security_invoker modifier
+create view <view name> with(security_invoker=true) as (
+  select * from <some table>
+);
+When to use views#
+Views provide the several benefits:
+
+Simplicity
+Consistency
+Logical Organization
+Security
+Simplicity#
+As a query becomes more complex, it can be a hassle to call it over and over - especially when we run it regularly. In the example above, instead of repeatedly running:
+
+select
+  students.name,
+  students.type,
+  courses.title,
+  courses.code,
+  grades.result
+from
+  grades
+  left join students on grades.student_id = students.id
+  left join courses on grades.course_id = courses.id;
+We can run this instead:
+
+select * from transcripts;
+Additionally, a view behaves like a typical table. We can safely use it in table JOINs or even create new views using existing views.
+
+Consistency#
+Views ensure that the likelihood of mistakes decreases when repeatedly executing a query. In our example above, we may decide that we want to exclude the course Introduction to Postgres. The query would become:
+
+select
+  students.name,
+  students.type,
+  courses.title,
+  courses.code,
+  grades.result
+from
+  grades
+  left join students on grades.student_id = students.id
+  left join courses on grades.course_id = courses.id
+where courses.code != 'PG101';
+Without a view, we would need to go into every dependent query to add the new rule. This would increase in the likelihood of errors and inconsistencies, as well as introducing a lot of effort for a developer. With views, we can alter just the underlying query in the view transcripts. The change will be applied to all applications using this view.
+
+Logical organization#
+With views, we can give our query a name. This is extremely useful for teams working with the same database. Instead of guessing what a query is supposed to do, a well-named view can explain it. For example, by looking at the name of the view transcripts, we can infer that the underlying query might involve the students, courses, and grades tables.
+
+Security#
+Views can restrict the amount and type of data presented to a user. Instead of allowing a user direct access to a set of tables, we provide them a view instead. We can prevent them from reading sensitive columns by excluding them from the underlying query.
+
+Materialized views#
+A materialized view is a form of view but it also stores the results to disk. In subsequent reads of a materialized view, the time taken to return its results would be much faster than a conventional view. This is because the data is readily available for a materialized view while the conventional view executes the underlying query each time it is called.
+
+Using our example above, a materialized view can be created like this:
+
+create materialized view transcripts as
+  select
+    students.name,
+    students.type,
+    courses.title,
+    courses.code,
+    grades.result
+  from
+    grades
+    left join students on grades.student_id = students.id
+    left join courses on grades.course_id = courses.id;
+Reading from the materialized view is the same as a conventional view:
+
+select * from transcripts;
+Refreshing materialized views#
+Unfortunately, there is a trade-off - data in materialized views are not always up to date. We need to refresh it regularly to prevent the data from becoming too stale. To do so:
+
+refresh materialized view transcripts;
+It's up to you how regularly refresh your materialized views, and it's probably different for each view depending on its use-case.
+
+Materialized views vs conventional views#
+Materialized views are useful when execution times for queries or views are too slow. These could likely occur in views or queries involving multiple tables and billions of rows. When using such a view, however, there should be tolerance towards data being outdated. Some use-cases for materialized views are internal dashboards and analytics.
+
+Creating a materialized view is not a solution to inefficient queries. You should always seek to optimize a slow running query even if you are implementing a materialized view.
+
+Resources#
+Official Docs: Create table
+Official Docs: Create view
+Postgres Tutorial: Create tables
+Postgres Tutorial: Add column
+Postgres Tutorial: Views
+
+Working with Arrays
+Working With Arrays
+
+Postgres supports flexible array types. These arrays are also supported in the Supabase Dashboard and in the JavaScript API.
+
+Create a table with an array column#
+Create a test table with a text array (an array of strings):
+
+
+Dashboard
+
+SQL
+Go to the Table editor page in the Dashboard.
+Click New Table and create a table with the name arraytest.
+Click Save.
+Click New Column and create a column with the name textarray, type text, and select Define as array.
+Click Save.
+Insert a record with an array value#
+
+Dashboard
+
+SQL
+
+JavaScript
+
+Swift
+
+Python
+Go to the Table editor page in the Dashboard.
+Select the arraytest table.
+Click Insert row and add ["Harry", "Larry", "Moe"].
+Click Save.
+View the results#
+
+Dashboard
+
+SQL
+Go to the Table editor page in the Dashboard.
+Select the arraytest table.
+You should see:
+
+| id  | textarray               |
+| --- | ----------------------- |
+| 1   | ["Harry","Larry","Moe"] |
+Query array data#
+Postgres uses 1-based indexing (e.g., textarray[1] is the first item in the array).
+
+
+SQL
+
+JavaScript
+
+Swift
+To select the first item from the array and get the total length of the array:
+
+SELECT textarray[1], array_length(textarray, 1) FROM arraytest;
+returns:
+
+| textarray | array_length |
+| --------- | ------------ |
+| Harry     | 3            |
+Resources#
+Supabase JS Client
+Supabase - Get started for free
+Postgres Arrays
+
+Managing Indexes in PostgreSQL
+Managing Indexes in PostgreSQL
+
+An index makes your Postgres queries faster. The index is like a "table of contents" for your data - a reference list which allows queries to quickly locate a row in a given table without needing to scan the entire table (which in large tables can take a long time).
+
+Indexes can be structured in a few different ways. The type of index chosen depends on the values you are indexing. By far the most common index type, and the default in Postgres, is the B-Tree. A B-Tree is the generalized form of a binary search tree, where nodes can have more than two children.
+
+Even though indexes improve query performance, the Postgres query planner may not always make use of a given index when choosing which optimizations to make. Additionally indexes come with some overhead - additional writes and increased storage - so it's useful to understand how and when to use indexes, if at all.
+
+Create an index#
+Let's take an example table:
+
+create table persons (
+  id bigint generated by default as identity primary key,
+  age int,
+  height int,
+  weight int,
+  name text,
+  deceased boolean
+);
+All the queries in this guide can be run using the SQL Editor in the Supabase Dashboard, or via psql if you're connecting directly to the database.
+
+We might want to frequently query users based on their age:
+
+select name from persons where age = 32;
+Without an index, Postgres will scan every row in the table to find equality matches on age.
+
+You can verify this by doing an explain on the query:
+
+explain select name from persons where age = 32;
+Outputs:
+
+Seq Scan on persons  (cost=0.00..22.75 rows=x width=y)
+Filter: (age = 32)
+To add a simple B-Tree index you can run:
+
+create index idx_persons_age on persons (age);
+It can take a long time to build indexes on large datasets and the default behaviour of create index is to lock the table from writes.
+
+Luckily Postgres provides us with create index concurrently which prevents blocking writes on the table, but does take a bit longer to build.
+
+Here is a simplified diagram of the index we just created (note that in practice, nodes actually have more than two children).
+
+B-Tree index example in Postgres
+
+You can see that in any large data set, traversing the index to locate a given value can be done in much less operations (O(log n)) than compared to scanning the table one value at a time from top to bottom (O(n)).
+
+Partial indexes#
+If you are frequently querying a subset of rows then it may be more efficient to build a partial index. In our example, perhaps we only want to match on age where deceased is false. We could build a partial index:
+
+create index idx_living_persons_age on persons (age)
+where deceased is false;
+Ordering indexes#
+By default B-Tree indexes are sorted in ascending order, but sometimes you may want to provide a different ordering. Perhaps our application has a page featuring the top 10 oldest people. Here we would want to sort in descending order, and include NULL values last. For this we can use:
+
+create index idx_persons_age_desc on persons (age desc nulls last);
+Reindexing#
+After a while indexes can become stale and may need rebuilding. Postgres provides a reindex command for this, but due to Postgres locks being placed on the index during this process, you may want to make use of the concurrent keyword.
+
+reindex index concurrently idx_persons_age;
+Alternatively you can reindex all indexes on a particular table:
+
+reindex table concurrently persons;
+Take note that reindex can be used inside a transaction, but reindex [index/table] concurrently cannot.
+
+Index Advisor#
+Indexes can improve query performance of your tables as they grow. The Supabase Dashboard offers an Index Advisor, which suggests potential indexes to add to your tables.
+
+For more information on the Index Advisor and its suggestions, see the index_advisor extension.
+
+To use the Dashboard Index Advisor:
+
+Go to the Query Performance page.
+Click on a query to bring up the Details side panel.
+Select the Indexes tab.
+Enable Index Advisor if prompted.
+Understanding Index Advisor results#
+The Indexes tab shows the existing indexes used in the selected query. Note that indexes suggested in the "New Index Recommendations" section may not be used when you create them. Postgres' query planner may intentionally ignore an available index if it determines that the query will be faster without. For example, on a small table, a sequential scan might be faster than an index scan. In that case, the planner will switch to using the index as the table size grows, helping to future proof the query.
+
+If additional indexes might improve your query, the Index Advisor shows the suggested indexes with the estimated improvement in startup and total costs:
+
+Startup cost is the cost to fetch the first row
+Total cost is the cost to fetch all the rows
+Costs are in arbitrary units, where a single sequential page read costs 1.0 units.
+
+Querying Joins and Nested Tables
+Querying Joins and Nested tables
+
+The data APIs automatically detect relationships between Postgres tables. Since Postgres is a relational database, this is a very common scenario.
+
+One-to-many joins#
+Let's use an example database that stores orchestral_sections and instruments:
+
+
+Tables
+
+SQL
+Orchestral sections
+
+id	name
+1	strings
+2	woodwinds
+Instruments
+
+id	name	section_id
+1	violin	1
+2	viola	1
+3	flute	2
+4	oboe	2
+The APIs will automatically detect relationships based on the foreign keys:
+
+
+JavaScript
+
+Dart
+
+Swift
+
+Kotlin
+
+Python
+
+GraphQL
+
+URL
+const { data, error } = await supabase.from('orchestral_sections').select(`
+  id,
+  name,
+  instruments ( id, name )
+`)
+TypeScript types for joins#
+supabase-js always returns a data object (for success), and an error object (for unsuccessful requests).
+
+These helper types provide the result types from any query, including nested types for database joins.
+
+Given the following schema with a relation between orchestral sections and instruments:
+
+create table orchestral_sections (
+  "id" serial primary key,
+  "name" text
+);
+create table instruments (
+  "id" serial primary key,
+  "name" text,
+  "section_id" int references "orchestral_sections"
+);
+We can get the nested SectionsWithInstruments type like this:
+
+import { QueryResult, QueryData, QueryError } from '@supabase/supabase-js'
+const sectionsWithInstrumentsQuery = supabase.from('orchestral_sections').select(`
+  id,
+  name,
+  instruments (
+    id,
+    name
+  )
+`)
+type SectionsWithInstruments = QueryData<typeof sectionsWithInstrumentsQuery>
+const { data, error } = await sectionsWithInstrumentsQuery
+if (error) throw error
+const sectionsWithInstruments: SectionsWithInstruments = data
+Many-to-many joins#
+The data APIs will detect many-to-many joins. For example, if you have a database which stored teams of users (where each user could belong to many teams):
+
+create table users (
+  "id" serial primary key,
+  "name" text
+);
+create table teams (
+  "id" serial primary key,
+  "team_name" text
+);
+create table members (
+  "user_id" int references users,
+  "team_id" int references teams,
+  primary key (user_id, team_id)
+);
+In these cases you don't need to explicitly define the joining table (members). If we wanted to fetch all the teams and the members in each team:
+
+
+JavaScript
+
+Dart
+
+Swift
+
+Kotlin
+
+Python
+
+GraphQL
+
+URL
+const { data, error } = await supabase.from('teams').select(`
+  id,
+  team_name,
+  users ( id, name )
+`)
+Specifying the ON clause for joins with multiple foreign keys#
+For example, if you have a project that tracks when employees check in and out of work shifts:
+
+-- Employees
+create table users (
+  "id" serial primary key,
+  "name" text
+);
+-- Badge scans
+create table scans (
+  "id" serial primary key,
+  "user_id" int references users,
+  "badge_scan_time" timestamp
+);
+-- Work shifts
+create table shifts (
+  "id" serial primary key,
+  "user_id" int references users,
+  "scan_id_start" int references scans, -- clocking in
+  "scan_id_end" int references scans, -- clocking out
+  "attendance_status" text
+);
+In this case, you need to explicitly define the join because the joining column on shifts is ambiguous as they are both referencing the scans table.
+
+To fetch all the shifts with scan_id_start and scan_id_end related to a specific scan, use the following syntax:
+
+
+JavaScript
+
+Dart
+
+Swift
+
+Kotlin
+
+Python
+
+GraphQL
+const { data, error } = await supabase.from('shifts').select(
+  `
+    *,
+    start_scan:scans!scan_id_start (
+      id,
+      user_id,
+      badge_scan_time
+    ),
+   end_scan:scans!scan_id_end (
+     id,
+     user_id,
+     badge_scan_time
+    )
+  `
+)
+
+Managing JSON and unstructured data
+Using the JSON data type in Postgres.
+
+Postgres supports storing and querying unstructured data.
+
+JSON vs JSONB#
+Postgres supports two types of JSON columns: json (stored as a string) and jsonb (stored as a binary). The recommended type is jsonb for almost all cases.
+
+json stores an exact copy of the input text. Database functions must reparse the content on each execution.
+jsonb stores database in a decomposed binary format. While this makes it slightly slower to input due to added conversion overhead, it is significantly faster to process, since no reparsing is needed.
+When to use JSON/JSONB#
+Generally you should use a jsonb column when you have data that is unstructured or has a variable schema. For example, if you wanted to store responses for various webhooks, you might not know the format of the response when creating the table. Instead, you could store the payload as a jsonb object in a single column.
+
+Don't go overboard with json/jsonb columns. They are a useful tool, but most of the benefits of a relational database come from the ability to query and join structured data, and the referential integrity that brings.
+
+Create JSONB columns#
+json/jsonb is just another "data type" for Postgres columns. You can create a jsonb column in the same way you would create a text or int column:
+
+
+SQL
+
+Dashboard
+create table books (
+  id serial primary key,
+  title text,
+  author text,
+  metadata jsonb
+);
+Inserting JSON data#
+You can insert JSON data in the same way that you insert any other data. The data must be valid JSON.
+
+
+SQL
+
+Dashboard
+
+JavaScript
+
+Dart
+
+Swift
+
+Kotlin
+
+Python
+insert into books
+  (title, author, metadata)
+values
+  (
+    'The Poky Little Puppy',
+    'Janette Sebring Lowrey',
+    '{"description":"Puppy is slower than other, bigger animals.","price":5.95,"ages":[3,6]}'
+  ),
+  (
+    'The Tale of Peter Rabbit',
+    'Beatrix Potter',
+    '{"description":"Rabbit eats some vegetables.","price":4.49,"ages":[2,5]}'
+  ),
+  (
+    'Tootle',
+    'Gertrude Crampton',
+    '{"description":"Little toy train has big dreams.","price":3.99,"ages":[2,5]}'
+  ),
+  (
+    'Green Eggs and Ham',
+    'Dr. Seuss',
+    '{"description":"Sam has changing food preferences and eats unusually colored food.","price":7.49,"ages":[4,8]}'
+  ),
+  (
+    'Harry Potter and the Goblet of Fire',
+    'J.K. Rowling',
+    '{"description":"Fourth year of school starts, big drama ensues.","price":24.95,"ages":[10,99]}'
+  );
+Query JSON data#
+Querying JSON data is similar to querying other data, with a few other features to access nested values.
+
+Postgres support a range of JSON functions and operators. For example, the -> operator returns values as jsonb data. If you want the data returned as text, use the ->> operator.
+
+
+SQL
+
+JavaScript
+
+Swift
+
+Kotlin
+
+Python
+
+Result
+select
+  title,
+  metadata ->> 'description' as description, -- returned as text
+  metadata -> 'price' as price,
+  metadata -> 'ages' -> 0 as low_age,
+  metadata -> 'ages' -> 1 as high_age
+from books;
+Validating JSON data#
+Supabase provides the pg_jsonschema extension that adds the ability to validate json and jsonb data types against JSON Schema documents.
+
+Once you have enabled the extension, you can add a "check constraint" to your table to validate the JSON data:
+
+create table customers (
+  id serial primary key,
+  metadata json
+);
+alter table customers
+add constraint check_metadata check (
+  json_matches_schema(
+    '{
+        "type": "object",
+        "properties": {
+            "tags": {
+                "type": "array",
+                "items": {
+                    "type": "string",
+                    "maxLength": 16
+                }
+            }
+        }
+    }',
+    metadata
+  )
+);
+Resources#
+Postgres: JSON Functions and Operators
+Postgres JSON types
+
+Cascade Deletes
+There are 5 options for foreign key constraint deletes:
+
+CASCADE: When a row is deleted from the parent table, all related rows in the child tables are deleted as well.
+RESTRICT: When a row is deleted from the parent table, the delete operation is aborted if there are any related rows in the child tables.
+SET NULL: When a row is deleted from the parent table, the values of the foreign key columns in the child tables are set to NULL.
+SET DEFAULT: When a row is deleted from the parent table, the values of the foreign key columns in the child tables are set to their default values.
+NO ACTION: This option is similar to RESTRICT, but it also has the option to be “deferred” to the end of a transaction. This means that other cascading deletes can run first, and then this delete constraint will only throw an error if there is referenced data remaining at the end of the transaction.
+These options can be specified when defining a foreign key constraint using the "ON DELETE" clause. For example, the following SQL statement creates a foreign key constraint with the CASCADE option:
+
+alter table child_table
+add constraint fk_parent foreign key (parent_id) references parent_table (id)
+  on delete cascade;
+This means that when a row is deleted from the parent_table, all related rows in the child_table will be deleted as well.
+
+RESTRICT vs NO ACTION#
+The difference between NO ACTION and RESTRICT is subtle and can be a bit confusing.
+
+Both NO ACTION and RESTRICT are used to prevent deletion of a row in a parent table if there are related rows in a child table. However, there is a subtle difference in how they behave.
+
+When a foreign key constraint is defined with the option RESTRICT, it means that if a row in the parent table is deleted, the database will immediately raise an error and prevent the deletion of the row in the parent table. The database will not delete, update or set to NULL any rows in the referenced tables.
+
+When a foreign key constraint is defined with the option NO ACTION, it means that if a row in the parent table is deleted, the database will also raise an error and prevent the deletion of the row in the parent table. However unlike RESTRICT, NO ACTION has the option defer the check using INITIALLY DEFERRED. This will only raise the above error if the referenced rows still exist at the end of the transaction.
+
+The difference from RESTRICT is that a constraint marked as NO ACTION INITIALLY DEFERRED is deferred until the end of the transaction, rather than running immediately. If, for example there is another foreign key constraint between the same tables marked as CASCADE, the cascade will occur first and delete the referenced rows, and no error will be thrown by the deferred constraint. Otherwise if there are still rows referencing the parent row by the end of the transaction, an error will be raised just like before. Just like RESTRICT, the database will not delete, update or set to NULL any rows in the referenced tables.
+
+In practice, you can use either NO ACTION or RESTRICT depending on your needs. NO ACTION is the default behavior if you do not specify anything. If you prefer to defer the check until the end of the transaction, use NO ACTION INITIALLY DEFERRED.
+
+Example#
+Let's further illustrate the difference with an example. We'll use the following data:
+
+grandparent
+
+id	name
+1	Elizabeth
+parent
+
+id	name	parent_id
+1	Charles	1
+2	Diana	1
+child
+
+id	name	father	mother
+1	William	1	2
+To create these tables and their data, we run:
+
+create table grandparent (
+  id serial primary key,
+  name text
+);
+create table parent (
+  id serial primary key,
+  name text,
+  parent_id integer references grandparent (id)
+    on delete cascade
+);
+create table child (
+  id serial primary key,
+  name text,
+  father integer references parent (id)
+    on delete restrict
+);
+insert into grandparent
+  (id, name)
+values
+  (1, 'Elizabeth');
+insert into parent
+  (id, name, parent_id)
+values
+  (1, 'Charles', 1);
+insert into parent
+  (id, name, parent_id)
+values
+  (2, 'Diana', 1);
+-- We'll just link the father for now
+insert into child
+  (id, name, father)
+values
+  (1, 'William', 1);
+RESTRICT#
+RESTRICT will prevent a delete and raise an error:
+
+postgres=# delete from grandparent;
+ERROR: update or delete on table "parent" violates foreign key constraint "child_father_fkey" on table "child"
+DETAIL: Key (id)=(1) is still referenced from table "child".
+Even though the foreign key constraint between parent and grandparent is CASCADE, the constraint between child and father is RESTRICT. Therefore an error is raised and no records are deleted.
+
+NO ACTION#
+Let's change the child-father relationship to NO ACTION:
+
+alter table child
+drop constraint child_father_fkey;
+alter table child
+add constraint child_father_fkey foreign key (father) references parent (id)
+  on delete no action;
+We see that NO ACTION will also prevent a delete and raise an error:
+
+postgres=# delete from grandparent;
+ERROR: update or delete on table "parent" violates foreign key constraint "child_father_fkey" on table "child"
+DETAIL: Key (id)=(1) is still referenced from table "child".
+NO ACTION INITIALLY DEFERRED#
+We'll change the foreign key constraint between child and father to be NO ACTION INITIALLY DEFERRED:
+
+alter table child
+drop constraint child_father_fkey;
+alter table child
+add constraint child_father_fkey foreign key (father) references parent (id)
+  on delete no action initially deferred;
+Here you will see that INITIALLY DEFFERED seems to operate like NO ACTION or RESTRICT. When we run a delete, it seems to make no difference:
+
+postgres=# delete from grandparent;
+ERROR: update or delete on table "parent" violates foreign key constraint "child_father_fkey" on table "child"
+DETAIL: Key (id)=(1) is still referenced from table "child".
+But, when we combine it with other constraints, then any other constraints take precedence. For example, let's run the same but add a mother column that has a CASCADE delete:
+
+alter table child
+add column mother integer references parent (id)
+  on delete cascade;
+update child
+set mother = 2
+where id = 1;
+Then let's run a delete on the grandparent table:
+
+postgres=# delete from grandparent;
+DELETE 1
+postgres=# select * from parent;
+ id | name | parent_id
+----+------+-----------
+(0 rows)
+postgres=# select * from child;
+ id | name | father | mother
+----+------+--------+--------
+(0 rows)
+The mother deletion took precedence over the father, and so William was deleted. After William was deleted, there was no reference to “Charles” and so he was free to be deleted, even though previously he wasn't (without INITIALLY DEFERRED).
+
+Managing Enums in Postgres
+Enums in Postgres are a custom data type. They allow you to define a set of values (or labels) that a column can hold. They are useful when you have a fixed set of possible values for a column.
+
+Creating enums#
+You can define a Postgres Enum using the create type statement. Here's an example:
+
+create type mood as enum (
+  'happy',
+  'sad',
+  'excited',
+  'calm'
+);
+In this example, we've created an Enum called "mood" with four possible values.
+
+When to use enums#
+There is a lot of overlap between Enums and foreign keys. Both can be used to define a set of values for a column. However, there are some advantages to using Enums:
+
+Performance: You can query a single table instead of finding the value from a lookup table.
+Simplicity: Generally the SQL is easier to read and write.
+There are also some disadvantages to using Enums:
+
+Limited Flexibility: Adding and removing values requires modifying the database schema (i.e.: using migrations) rather than adding data to a table.
+Maintenance Overhead: Enum types require ongoing maintenance. If your application's requirements change frequently, maintaining enums can become burdensome.
+In general you should only use Enums when the list of values is small, fixed, and unlikely to change often. Things like "a list of continents" or "a list of departments" are good candidates for Enums.
+
+Using enums in tables#
+To use the Enum in a table, you can define a column with the Enum type. For example:
+
+create table person (
+  id serial primary key,
+  name text,
+  current_mood mood
+);
+Here, the current_mood column can only have values from the "mood" Enum.
+
+Inserting data with enums#
+You can insert data into a table with Enum columns by specifying one of the Enum values:
+
+insert into person
+  (name, current_mood)
+values
+  ('Alice', 'happy');
+Querying data with enums#
+When querying data, you can filter and compare Enum values as usual:
+
+select * 
+from person 
+where current_mood = 'sad';
+Managing enums#
+You can manage your Enums using the alter type statement. Here are some examples:
+
+Updating enum values#
+You can update the value of an Enum column:
+
+update person
+set current_mood = 'excited'
+where name = 'Alice';
+Adding enum values#
+To add new values to an existing Postgres Enum, you can use the ALTER TYPE statement. Here's how you can do it:
+
+Let's say you have an existing Enum called mood, and you want to add a new value, content:
+
+alter type mood add value 'content';
+Removing enum values#
+Even though it is possible, it is unsafe to remove enum values once they have been created. It's better to leave the enum value in place.
+
+Read the Postgres mailing list for more information:
+
+There is no ALTER TYPE DELETE VALUE in Postgres. Even if you delete every occurrence of an Enum value within a table (and vacuumed away those rows), the target value could still exist in upper index pages. If you delete the pg_enum entry you'll break the index.
+
+Getting a list of enum values#
+Check your existing Enum values by querying the enum_range function:
+
+select enum_range(null::mood);
+
+Resources#
+Official Postgres Docs: Enumerated Types
+
+Database Functions
+Postgres has built-in support for SQL functions.
+These functions live inside your database, and they can be used with the API.
+
+Quick demo#
+
+Getting started#
+Supabase provides several options for creating database functions. You can use the Dashboard or create them directly using SQL.
+We provide a SQL editor within the Dashboard, or you can connect to your database
+and run the SQL queries yourself.
+
+Go to the "SQL editor" section.
+Click "New Query".
+Enter the SQL to create or replace your Database function.
+Click "Run" or cmd+enter (ctrl+enter).
+Simple functions#
+Let's create a basic Database Function which returns a string "hello world".
+
+create or replace function hello_world() -- 1
+returns text -- 2
+language sql -- 3
+as $$  -- 4
+  select 'hello world';  -- 5
+$$; --6
+Show/Hide Details
+
+After the Function is created, we have several ways of "executing" the function - either directly inside the database using SQL, or with one of the client libraries.
+
+
+SQL
+
+JavaScript
+
+Dart
+
+Swift
+
+Kotlin
+
+Python
+select hello_world();
+Returning data sets#
+Database Functions can also return data sets from Tables or Views.
+
+For example, if we had a database with some Star Wars data inside:
+
+
+Data
+
+SQL
+Planets
+| id  | name     |
+| --- | -------- |
+| 1   | Tatooine |
+| 2   | Alderaan |
+| 3   | Kashyyyk |
+People
+| id  | name             | planet_id |
+| --- | ---------------- | --------- |
+| 1   | Anakin Skywalker | 1         |
+| 2   | Luke Skywalker   | 1         |
+| 3   | Princess Leia    | 2         |
+| 4   | Chewbacca        | 3         |
+We could create a function which returns all the planets:
+
+create or replace function get_planets()
+returns setof planets
+language sql
+as $$
+  select * from planets;
+$$;
+Because this function returns a table set, we can also apply filters and selectors. For example, if we only wanted the first planet:
+
+
+SQL
+
+JavaScript
+
+Dart
+
+Swift
+
+Kotlin
+
+Python
+select *
+from get_planets()
+where id = 1;
+Passing parameters#
+Let's create a Function to insert a new planet into the planets table and return the new ID. Note that this time we're using the plpgsql language.
+
+create or replace function add_planet(name text)
+returns bigint
+language plpgsql
+as $$
+declare
+  new_row bigint;
+begin
+  insert into planets(name)
+  values (add_planet.name)
+  returning id into new_row;
+  return new_row;
+end;
+$$;
+Once again, you can execute this function either inside your database using a select query, or with the client libraries:
+
+
+SQL
+
+JavaScript
+
+Dart
+
+Swift
+
+Kotlin
+
+Python
+select * from add_planet('Jakku');
+Suggestions#
+Database Functions vs Edge Functions#
+For data-intensive operations, use Database Functions, which are executed within your database
+and can be called remotely using the REST and GraphQL API.
+
+For use-cases which require low-latency, use Edge Functions, which are globally-distributed and can be written in Typescript.
+
+Security definer vs invoker#
+Postgres allows you to specify whether you want the function to be executed as the user calling the function (invoker), or as the creator of the function (definer). For example:
+
+create function hello_world()
+returns text
+language plpgsql
+security definer set search_path = ''
+as $$
+begin
+  select 'hello world';
+end;
+$$;
+It is best practice to use security invoker (which is also the default). If you ever use security definer, you must set the search_path.
+This limits the potential damage if you allow access to schemas which the user executing the function should not have.
+
+Function privileges#
+By default, database functions can be executed by any role. There are two main ways to restrict this:
+
+On a case-by-case basis. Specifically revoke permissions for functions you want to protect. Execution needs to be revoked for both public and the role you're restricting:
+
+revoke execute on function public.hello_world from public;
+revoke execute on function public.hello_world from anon;
+Restrict function execution by default. Specifically grant access when you want a function to be executable by a specific role.
+
+To restrict all existing functions, revoke execution permissions from both public and the role you want to restrict:
+
+revoke execute on all functions in schema public from public;
+revoke execute on all functions in schema public from anon, authenticated;
+To restrict all new functions, change the default privileges for both public and the role you want to restrict:
+
+alter default privileges in schema public revoke execute on functions from public;
+alter default privileges in schema public revoke execute on functions from anon, authenticated;
+You can then regrant permissions for a specific function to a specific role:
+
+grant execute on function public.hello_world to authenticated;
+Debugging functions#
+You can add logs to help you debug functions. This is especially recommended for complex functions.
+
+Good targets to log include:
+
+Values of (non-sensitive) variables
+Returned results from queries
+General logging#
+To create custom logs in the Dashboard's Postgres Logs, you can use the raise keyword. By default, there are 3 observed severity levels:
+
+log
+warning
+exception (error level)
+create function logging_example(
+  log_message text,
+  warning_message text,
+  error_message text
+)
+returns void
+language plpgsql
+as $$
+begin
+  raise log 'logging message: %', log_message;
+  raise warning 'logging warning: %', warning_message;
+  -- immediately ends function and reverts transaction
+  raise exception 'logging error: %', error_message;
+end;
+$$;
+select logging_example('LOGGED MESSAGE', 'WARNING MESSAGE', 'ERROR MESSAGE');
+Error handling#
+You can create custom errors with the raise exception keywords.
+
+A common pattern is to throw an error when a variable doesn't meet a condition:
+
+create or replace function error_if_null(some_val text)
+returns text
+language plpgsql
+as $$
+begin
+  -- error if some_val is null
+  if some_val is null then
+    raise exception 'some_val should not be NULL';
+  end if;
+  -- return some_val if it is not null
+  return some_val;
+end;
+$$;
+select error_if_null(null);
+Value checking is common, so Postgres provides a shorthand: the assert keyword. It uses the following format:
+
+-- throw error when condition is false
+assert <some condition>, 'message';
+Below is an example
+
+create function assert_example(name text)
+returns uuid
+language plpgsql
+as $$
+declare
+  student_id uuid;
+begin
+  -- save a user's id into the user_id variable
+  select
+    id into student_id
+  from attendance_table
+  where student = name;
+  -- throw an error if the student_id is null
+  assert student_id is not null, 'assert_example() ERROR: student not found';
+  -- otherwise, return the user's id
+  return student_id;
+end;
+$$;
+select assert_example('Harry Potter');
+Error messages can also be captured and modified with the exception keyword:
+
+create function error_example()
+returns void
+language plpgsql
+as $$
+begin
+  -- fails: cannot read from nonexistent table
+  select * from table_that_does_not_exist;
+  exception
+      when others then
+          raise exception 'An error occurred in function <function name>: %', sqlerrm;
+end;
+$$;
+Advanced logging#
+For more complex functions or complicated debugging, try logging:
+
+Formatted variables
+Individual rows
+Start and end of function calls
+create or replace function advanced_example(num int default 10)
+returns text
+language plpgsql
+as $$
+declare
+    var1 int := 20;
+    var2 text;
+begin
+    -- Logging start of function
+    raise log 'logging start of function call: (%)', (select now());
+    -- Logging a variable from a SELECT query
+    select
+      col_1 into var1
+    from some_table
+    limit 1;
+    raise log 'logging a variable (%)', var1;
+    -- It is also possible to avoid using variables, by returning the values of your query to the log
+    raise log 'logging a query with a single return value(%)', (select col_1 from some_table limit 1);
+    -- If necessary, you can even log an entire row as JSON
+    raise log 'logging an entire row as JSON (%)', (select to_jsonb(some_table.*) from some_table limit 1);
+    -- When using INSERT or UPDATE, the new value(s) can be returned
+    -- into a variable.
+    -- When using DELETE, the deleted value(s) can be returned.
+    -- All three operations use "RETURNING value(s) INTO variable(s)" syntax
+    insert into some_table (col_2)
+    values ('new val')
+    returning col_2 into var2;
+    raise log 'logging a value from an INSERT (%)', var2;
+    return var1 || ',' || var2;
+exception
+    -- Handle exceptions here if needed
+    when others then
+        raise exception 'An error occurred in function <advanced_example>: %', sqlerrm;
+end;
+$$;
+select advanced_example();
+Resources#
+Official Client libraries: JavaScript and Flutter
+Community client libraries: github.com/supabase-community
+Postgres Official Docs: Chapter 9. Functions and Operators
+Postgres Reference: CREATE FUNCTION
+Deep dive#
+Create Database Functions#
+
+Call Database Functions using JavaScript#
+
+Using Database Functions to call an external API#
+
+Postgres Triggers
+
+
+Automatically execute SQL on table events.
+
+In Postgres, a trigger executes a set of actions automatically on table events such as INSERTs, UPDATEs, DELETEs, or TRUNCATE operations.
+
+Creating a trigger#
+Creating triggers involve 2 parts:
+
+A Function which will be executed (called the Trigger Function)
+The actual Trigger object, with parameters around when the trigger should be run.
+An example of a trigger is:
+
+create trigger "trigger_name"
+after insert on "table_name"
+for each row
+execute function trigger_function();
+Trigger functions#
+A trigger function is a user-defined Function that Postgres executes when the trigger is fired.
+
+Example trigger function#
+Here is an example that updates salary_log whenever an employee's salary is updated:
+
+-- Example: Update salary_log when salary is updated
+create function update_salary_log()
+returns trigger
+language plpgsql
+as $$
+begin
+  insert into salary_log(employee_id, old_salary, new_salary)
+  values (new.id, old.salary, new.salary);
+  return new;
+end;
+$$;
+create trigger salary_update_trigger
+after update on employees
+for each row
+execute function update_salary_log();
+Trigger variables#
+Trigger functions have access to several special variables that provide information about the context of the trigger event and the data being modified. In the example above you can see the values inserted into the salary log are old.salary and new.salary - in this case old specifies the previous values and new specifies the updated values.
+
+Here are some of the key variables and options available within trigger functions:
+
+TG_NAME: The name of the trigger being fired.
+TG_WHEN: The timing of the trigger event (BEFORE or AFTER).
+TG_OP: The operation that triggered the event (INSERT, UPDATE, DELETE, or TRUNCATE).
+OLD: A record variable holding the old row's data in UPDATE and DELETE triggers.
+NEW: A record variable holding the new row's data in UPDATE and INSERT triggers.
+TG_LEVEL: The trigger level (ROW or STATEMENT), indicating whether the trigger is row-level or statement-level.
+TG_RELID: The object ID of the table on which the trigger is being fired.
+TG_TABLE_NAME: The name of the table on which the trigger is being fired.
+TG_TABLE_SCHEMA: The schema of the table on which the trigger is being fired.
+TG_ARGV: An array of string arguments provided when creating the trigger.
+TG_NARGS: The number of arguments in the TG_ARGV array.
+Types of triggers#
+There are two types of trigger, BEFORE and AFTER:
+
+Trigger before changes are made#
+Executes before the triggering event.
+
+create trigger before_insert_trigger
+before insert on orders
+for each row
+execute function before_insert_function();
+Trigger after changes are made#
+Executes after the triggering event.
+
+create trigger after_delete_trigger
+after delete on customers
+for each row
+execute function after_delete_function();
+Execution frequency#
+There are two options available for executing triggers:
+
+for each row: specifies that the trigger function should be executed once for each affected row.
+for each statement: the trigger is executed once for the entire operation (for example, once on insert). This can be more efficient than for each row when dealing with multiple rows affected by a single SQL statement, as they allow you to perform calculations or updates on groups of rows at once.
+Dropping a trigger#
+You can delete a trigger using the drop trigger command:
+
+drop trigger "trigger_name" on "table_name";
+Resources#
+Official Postgres Docs: Triggers
+Official Postgres Docs: Overview of Trigger Behavior
+Official Postgres Docs: CREATE TRIGGER
+
+Database Webhooks
+Trigger external payloads on database events.
+
+Database Webhooks allow you to send real-time data from your database to another system whenever a table event occurs.
+
+You can hook into three table events: INSERT, UPDATE, and DELETE. All events are fired after a database row is changed.
+
+Webhooks vs triggers#
+Database Webhooks are very similar to triggers, and that's because Database Webhooks are just a convenience wrapper around triggers using the pg_net extension. This extension is asynchronous, and therefore will not block your database changes for long-running network requests.
+
+This video demonstrates how you can create a new customer in Stripe each time a row is inserted into a profiles table:
+
+
+Creating a webhook#
+Create a new Database Webhook in the Dashboard.
+Give your Webhook a name.
+Select the table you want to hook into.
+Select one or more events (table inserts, updates, or deletes) you want to hook into.
+Since webhooks are just database triggers, you can also create one from SQL statement directly.
+
+create trigger "my_webhook" after insert
+on "public"."my_table" for each row
+execute function "supabase_functions"."http_request"(
+  'http://host.docker.internal:3000',
+  'POST',
+  '{"Content-Type":"application/json"}',
+  '{}',
+  '1000'
+);
+We currently support HTTP webhooks. These can be sent as POST or GET requests with a JSON payload.
+
+Payload#
+The payload is automatically generated from the underlying table record:
+
+type InsertPayload = {
+  type: 'INSERT'
+  table: string
+  schema: string
+  record: TableRecord<T>
+  old_record: null
+}
+type UpdatePayload = {
+  type: 'UPDATE'
+  table: string
+  schema: string
+  record: TableRecord<T>
+  old_record: TableRecord<T>
+}
+type DeletePayload = {
+  type: 'DELETE'
+  table: string
+  schema: string
+  record: null
+  old_record: TableRecord<T>
+}
+Monitoring#
+Logging history of webhook calls is available under the net schema of your database. For more info, see the GitHub Repo.
+
+Local development#
+When using Database Webhooks on your local Supabase instance, you need to be aware that the Postgres database runs inside a Docker container. This means that localhost or 127.0.0.1 in your webhook URL will refer to the container itself, not your host machine where your application is running.
+
+To target services running on your host machine, use host.docker.internal. If that doesn't work, you may need to use your machine's local IP address instead.
+
+For example, if you want to trigger an edge function when a webhook fires, your webhook URL would be:
+
+http://host.docker.internal:54321/functions/v1/my-function-name
+If you're experiencing connection issues with webhooks locally, verify you're using the correct hostname instead of localhost.
+
+Resources#
+pg_net: an async networking extension for Postgres
+
+Full Text Search
+How to use full text search in PostgreSQL.
+
+Postgres has built-in functions to handle Full Text Search queries. This is like a "search engine" within Postgres.
+
+
+Preparation#
+For this guide we'll use the following example data:
+
+
+Data
+
+SQL
+id	title	author	description
+1	The Poky Little Puppy	Janette Sebring Lowrey	Puppy is slower than other, bigger animals.
+2	The Tale of Peter Rabbit	Beatrix Potter	Rabbit eats some vegetables.
+3	Tootle	Gertrude Crampton	Little toy train has big dreams.
+4	Green Eggs and Ham	Dr. Seuss	Sam has changing food preferences and eats unusually colored food.
+5	Harry Potter and the Goblet of Fire	J.K. Rowling	Fourth year of school starts, big drama ensues.
+Usage#
+The functions we'll cover in this guide are:
+
+to_tsvector()#
+Converts your data into searchable tokens. to_tsvector() stands for "to text search vector." For example:
+
+select to_tsvector('green eggs and ham');
+-- Returns 'egg':2 'green':1 'ham':4
+Collectively these tokens are called a "document" which Postgres can use for comparisons.
+
+to_tsquery()#
+Converts a query string into tokens to match. to_tsquery() stands for "to text search query."
+
+This conversion step is important because we will want to "fuzzy match" on keywords.
+For example if a user searches for eggs, and a column has the value egg, we probably still want to return a match.
+
+Match: @@#
+The @@ symbol is the "match" symbol for Full Text Search. It returns any matches between a to_tsvector result and a to_tsquery result.
+
+Take the following example:
+
+
+SQL
+
+JavaScript
+
+Dart
+
+Swift
+
+Kotlin
+
+Python
+select *
+from books
+where title = 'Harry';
+The equality symbol above (=) is very "strict" on what it matches. In a full text search context, we might want to find all "Harry Potter" books and so we can rewrite the
+example above:
+
+
+SQL
+
+JavaScript
+
+Dart
+
+Swift
+
+Kotlin
+select *
+from books
+where to_tsvector(title) @@ to_tsquery('Harry');
+Basic full text queries#
+Search a single column#
+To find all books where the description contain the word big:
+
+
+SQL
+
+JavaScript
+
+Dart
+
+Swift
+
+Kotlin
+
+Python
+
+Data
+select
+  *
+from
+  books
+where
+  to_tsvector(description)
+  @@ to_tsquery('big');
+Search multiple columns#
+Right now there is no direct way to use JavaScript or Dart to search through multiple columns but you can do it by creating computed columns on the database.
+
+To find all books where description or title contain the word little:
+
+
+SQL
+
+JavaScript
+
+Dart
+
+Swift
+
+Kotlin
+
+Python
+
+Data
+select
+  *
+from
+  books
+where
+  to_tsvector(description || ' ' || title) -- concat columns, but be sure to include a space to separate them!
+  @@ to_tsquery('little');
+Match all search words#
+To find all books where description contains BOTH of the words little and big, we can use the & symbol:
+
+
+SQL
+
+JavaScript
+
+Dart
+
+Swift
+
+Kotlin
+
+Python
+
+Data
+select
+  *
+from
+  books
+where
+  to_tsvector(description)
+  @@ to_tsquery('little & big'); -- use & for AND in the search query
+Match any search words#
+To find all books where description contain ANY of the words little or big, use the | symbol:
+
+
+SQL
+
+JavaScript
+
+Dart
+
+Swift
+
+Kotlin
+
+Python
+
+Data
+select
+  *
+from
+  books
+where
+  to_tsvector(description)
+  @@ to_tsquery('little | big'); -- use | for OR in the search query
+Notice how searching for big includes results with the word bigger (or biggest, etc).
+
+Partial search#
+Partial search is particularly useful when you want to find matches on substrings within your data.
+
+Implementing partial search#
+You can use the :* syntax with to_tsquery(). Here's an example that searches for any book titles beginning with "Lit":
+
+select title from books where to_tsvector(title) @@ to_tsquery('Lit:*');
+Extending functionality with RPC#
+To make the partial search functionality accessible through the API, you can wrap the search logic in a stored procedure.
+
+After creating this function, you can invoke it from your application using the SDK for your platform. Here's an example:
+
+
+SQL
+
+JavaScript
+
+Dart
+
+Swift
+
+Kotlin
+
+Python
+create or replace function search_books_by_title_prefix(prefix text)
+returns setof books AS $$
+begin
+  return query
+  select * from books where to_tsvector('english', title) @@ to_tsquery(prefix || ':*');
+end;
+$$ language plpgsql;
+This function takes a prefix parameter and returns all books where the title contains a word starting with that prefix. The :* operator is used to denote a prefix match in the to_tsquery() function.
+
+Handling spaces in queries#
+When you want the search term to include a phrase or multiple words, you can concatenate words using a + as a placeholder for space:
+
+select * from search_books_by_title_prefix('Little+Puppy');
+Creating indexes#
+Now that we have Full Text Search working, let's create an index. This will allow Postgres to "build" the documents preemptively so that they
+don't need to be created at the time we execute the query. This will make our queries much faster.
+
+Searchable columns#
+Let's create a new column fts inside the books table to store the searchable index of the title and description columns.
+
+We can use a special feature of Postgres called
+Generated Columns
+to ensure that the index is updated any time the values in the title and description columns change.
+
+
+SQL
+
+Data
+alter table
+  books
+add column
+  fts tsvector generated always as (to_tsvector('english', description || ' ' || title)) stored;
+create index books_fts on books using gin (fts); -- generate the index
+select id, fts
+from books;
+Search using the new column#
+Now that we've created and populated our index, we can search it using the same techniques as before:
+
+
+SQL
+
+JavaScript
+
+Dart
+
+Swift
+
+Kotlin
+
+Python
+
+Data
+select
+  *
+from
+  books
+where
+  fts @@ to_tsquery('little & big');
+Query operators#
+Visit Postgres: Text Search Functions and Operators
+to learn about additional query operators you can use to do more advanced full text queries, such as:
+
+Proximity: <->#
+The proximity symbol is useful for searching for terms that are a certain "distance" apart.
+For example, to find the phrase big dreams, where the a match for "big" is followed immediately by a match for "dreams":
+
+
+SQL
+
+JavaScript
+
+Dart
+
+Swift
+
+Kotlin
+
+Python
+select
+  *
+from
+  books
+where
+  to_tsvector(description) @@ to_tsquery('big <-> dreams');
+We can also use the <-> to find words within a certain distance of each other. For example to find year and school within 2 words of each other:
+
+
+SQL
+
+JavaScript
+
+Dart
+
+Swift
+
+Kotlin
+
+Python
+select
+  *
+from
+  books
+where
+  to_tsvector(description) @@ to_tsquery('year <2> school');
+Negation: !#
+The negation symbol can be used to find phrases which don't contain a search term.
+For example, to find records that have the word big but not little:
+
+
+SQL
+
+JavaScript
+
+Dart
+
+Swift
+
+Kotlin
+
+Python
+select
+  *
+from
+  books
+where
+  to_tsvector(description) @@ to_tsquery('big & !little');
+Resources#
+Postgres: Text Search Functions and Operators
+
+Partitioning tables
+Table partitioning is a technique that allows you to divide a large table into smaller, more manageable parts called “partitions”.
+
+multi database
+Each partition contains a subset of the data based on a specified criteria, such as a range of values or a specific condition. Partitioning can significantly improve query performance and simplify data management for large datasets.
+
+Benefits of table partitioning#
+Improved query performance: allows queries to target specific partitions, reducing the amount of data scanned and improving query execution time.
+Scalability: With partitioning, you can add or remove partitions as your data grows or changes, enabling better scalability and flexibility.
+Efficient data management: simplifies tasks such as data loading, archiving, and deletion by operating on smaller partitions instead of the entire table.
+Enhanced maintenance operations: can optimize vacuuming and indexing, leading to faster maintenance tasks.
+Partitioning methods#
+Postgres supports various partitioning methods based on how you want to partition your data. The commonly used methods are:
+
+Range Partitioning: Data is divided into partitions based on a specified range of values. For example, you can partition a sales table by date, where each partition represents a specific time range (e.g., one partition for each month).
+List Partitioning: Data is divided into partitions based on a specified list of values. For instance, you can partition a customer table by region, where each partition contains customers from a specific region (e.g., one partition for customers in the US, another for customers in Europe).
+Hash Partitioning: Data is distributed across partitions using a hash function. This method provides a way to evenly distribute data among partitions, which can be useful for load balancing. However, it doesn't allow direct querying based on specific values.
+Creating partitioned tables#
+Let's consider an example of range partitioning for a sales table based on the order date. We'll create monthly partitions to store data for each month:
+
+create table sales (
+    id bigint generated by default as identity,
+    order_date date not null,
+    customer_id bigint,
+    amount bigint,
+    -- We need to include all the
+    -- partitioning columns in constraints:
+    primary key (order_date, id)
+)
+partition by range (order_date);
+create table sales_2000_01
+	partition of sales
+  for values from ('2000-01-01') to ('2000-02-01');
+create table sales_2000_02
+	partition of sales
+	for values from ('2000-02-01') to ('2000-03-01');
+To create a partitioned table you append partition by range (<column_name>) to the table creation statement. The column that you are partitioning with must be included in any unique index, which is the reason why we specify a composite primary key here (primary key (order_date, id)).
+
+Querying partitioned tables#
+To query a partitioned table, you have two options:
+
+Querying the parent table
+Querying specific partitions
+Querying the parent table#
+When you query the parent table, Postgres automatically routes the query to the relevant partitions based on the conditions specified in the query. This allows you to retrieve data from all partitions simultaneously.
+
+Example:
+
+select *
+from sales
+where order_date >= '2000-01-01' and order_date < '2000-03-01';
+This query will retrieve data from both the sales_2000_01 and sales_2000_02 partitions.
+
+Querying specific partitions#
+If you only need to retrieve data from a specific partition, you can directly query that partition instead of the parent table. This approach is useful when you want to target a specific range or condition within a partition.
+
+select *
+from sales_2000_02;
+This query will retrieve data only from the sales_2000_02 partition.
+
+When to partition your tables#
+There is no real threshold to determine when you should use partitions. Partitions introduce complexity, and complexity should be avoided until it's needed. A few guidelines:
+
+If you are considering performance, avoid partitions until you see performance degradation on non-partitioned tables.
+If you are using partitions as a management tool, it's fine to create the partitions any time.
+If you don't know how you should partition your data, then it's probably too early.
+Examples#
+Here are simple examples for each of the partitioning types in Postgres.
+
+Range partitioning#
+Let's consider a range partitioning example for a table that stores sales data based on the order date. We'll create monthly partitions to store data for each month.
+
+In this example, the sales table is partitioned into two partitions: sales_january and sales_february. The data in these partitions is based on the specified range of order dates:
+
+create table sales (
+    id bigint generated by default as identity,
+    order_date date not null,
+    customer_id bigint,
+    amount bigint,
+    -- We need to include all the
+    -- partitioning columns in constraints:
+    primary key (order_date, id)
+)
+partition by range (order_date);
+create table sales_2000_01
+	partition of sales
+  for values from ('2000-01-01') to ('2000-02-01');
+create table sales_2000_02
+	partition of sales
+	for values from ('2000-02-01') to ('2000-03-01');
+List partitioning#
+Let's consider a list partitioning example for a table that stores customer data based on their region. We'll create partitions to store customers from different regions.
+
+In this example, the customers table is partitioned into two partitions: customers_americas and customers_asia. The data in these partitions is based on the specified list of regions:
+
+-- Create the partitioned table
+create table customers (
+    id bigint generated by default as identity,
+    name text,
+    country text,
+    -- We need to include all the
+    -- partitioning columns in constraints:
+    primary key (country, id)
+)
+partition by list(country);
+create table customers_americas
+	partition of customers
+	for values in ('US', 'CANADA');
+create table customers_asia
+	partition of customers
+  for values in ('INDIA', 'CHINA', 'JAPAN');
+Hash partitioning#
+You can use hash partitioning to evenly distribute data.
+
+In this example, the products table is partitioned into two partitions: products_one and products_two. The data is distributed across these partitions using a hash function:
+
+create table products (
+    id bigint generated by default as identity,
+    name text,
+    category text,
+    price bigint
+)
+partition by hash (id);
+create table products_one
+	partition of products
+  for values with (modulus 2, remainder 1);
+create table products_two
+	partition of products
+  for values with (modulus 2, remainder 0);
+
+Other tools#
+There are several other tools available for Postgres partitioning, most notably pg_partman. Native partitioning was introduced in Postgres 10 and is generally thought to have better performance.
+
+Connection management
+Using your connections resourcefully
+
+Connections#
+Every Compute Add-On has a pre-configured direct connection count and Supavisor pool size. This guide discusses ways to observe and manage them resourcefully.
+
+Configuring Supavisor's pool size#
+You can change how many database connections Supavisor can manage by altering the pool size in the "Connection pooling configuration" section of the Database Settings:
+
+Connection Info and Certificate.
+
+The general rule is that if you are heavily using the PostgREST database API, you should be conscientious about raising your pool size past 40%. Otherwise, you can commit 80% to the pool. This leaves adequate room for the Authentication server and other utilities.
+
+These numbers are generalizations and depends on other Supabase products that you use and the extent of their usage. The actual values depend on your concurrent peak connection usage. For instance, if you were only using 80 connections in a week period and your database max connections is set to 500, then realistically you could allocate the difference of 420 (minus a reasonable buffer) to service more demand.
+
+Monitoring connections#
+Capturing historical usage#
+Supabase offers a Grafana Dashboard that records and visualizes over 200 project metrics, including connections. For setup instructions, check the metrics docs.
+
+Its "Client Connections" graph displays connections for both Supavisor and Postgres
+client connection graph
+
+Observing live connections#
+pg_stat_activity is a special view that keeps track of processes being run by your database, including live connections. It's particularly useful for determining if idle clients are hogging connection slots.
+
+Query to get all live connections:
+
+SELECT
+  pg_stat_activity.pid as connection_id,
+  ssl,
+  datname as database,
+  usename as connected_role,
+  application_name,
+  client_addr as IP,
+  query,
+  query_start,
+  state,
+  backend_start
+FROM pg_stat_ssl
+JOIN pg_stat_activity
+ON pg_stat_ssl.pid = pg_stat_activity.pid;
+Interpreting the query:
+
+Column	Description
+connection_id	connection id
+ssl	Indicates if SSL is in use
+database	Name of the connected database (usually postgres)
+usename	Role of the connected user
+application_name	Name of the connecting application
+client_addr	IP address of the connecting server
+query	Last query executed by the connection
+query_start	Time when the last query was executed
+state	Querying state: active or idle
+backend_start	Timestamp of the connection's establishment
+The username can be used to identify the source:
+
+Role	API/Tool
+supabase_admin	Used by Supabase for monitoring and by Realtime
+authenticator	Data API (PostgREST)
+supabase_auth_admin	Auth
+supabase_storage_admin	Storage
+supabase_replication_admin	Synchronizes Read Replicas
+postgres	Supabase Dashboard and External Tools (e.g., Prisma, SQLAlchemy, PSQL...)
+Custom roles defined by user	External Tools (e.g., Prisma, SQLAlchemy, PSQL...)
+

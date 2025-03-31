@@ -1,0 +1,31 @@
+{
+  "name": "real-talk-video-compiler",
+  "version": "1.0.0",
+  "description": "Video processing application for compiling real-talk videos",
+  "main": "dist/backend/server.js",
+  "scripts": {
+    "start": "node dist/backend/server.js",
+    "dev": "nodemon --exec ts-node src/backend/server.ts",
+    "build": "tsc",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "video",
+    "processing",
+    "compiler"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.49.4",
+    "@types/express": "^5.0.1",
+    "@types/node": "^22.13.14",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.8.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.9"
+  }
+}
