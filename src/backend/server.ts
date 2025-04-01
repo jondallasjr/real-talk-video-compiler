@@ -14,20 +14,60 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+// Configure file upload middleware
+console.log("Configuring fileUpload middleware...");
 app.use(fileUpload({
   createParentPath: true,
   limits: { 
     fileSize: 50 * 1024 * 1024 // 50MB max file size
   },
+  debug: true, // Enable debug mode to log more information
 }));
+
+// Log middleware configuration
+console.log("Express middleware configuration complete");
 
 
 // API routes
 import videoRoutes from './routes/video.routes';
 import projectRoutes from './routes/project.routes';
 
+// Log all incoming requests
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+  console.log('Headers:', req.headers);
+  next();
+});
+
+// Default route
+app.get('/api', (req: Request, res: Response) => {
+  res.json({ message: 'Welcome to Real Talk Video Compiler API' });
+});
+
+// Debug route to check if the server is running and accessible
+app.get('/api/debug', (req: Request, res: Response) => {
+  console.log("Debug endpoint hit at", new Date().toISOString());
+  res.json({ 
+    status: 'ok', 
+    message: 'Server is running correctly',
+    time: new Date().toISOString(),
+    routes: {
+      video_upload: '/api/videos/upload',
+      videos: '/api/videos',
+      projects: '/api/projects'
+    }
+  });
+});
+
+// Mount API routes
 app.use('/api/videos', videoRoutes);
 app.use('/api/projects', projectRoutes);
+
+// Add a 404 handler for API routes - this must come AFTER all API routes are defined
+app.use('/api/*', (req, res) => {
+  console.log(`[404] Route not found: ${req.method} ${req.url}`);
+  res.status(404).json({ error: 'API endpoint not found' });
+});
 
 // Serve static frontend in production
 if (process.env.NODE_ENV === 'production') {
@@ -37,11 +77,6 @@ if (process.env.NODE_ENV === 'production') {
     res.sendFile(path.join(__dirname, '../../frontend/build/index.html'));
   });
 }
-
-// Default route
-app.get('/api', (req: Request, res: Response) => {
-  res.json({ message: 'Welcome to Real Talk Video Compiler API' });
-});
 
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
