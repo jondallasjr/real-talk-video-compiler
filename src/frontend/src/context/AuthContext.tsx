@@ -46,11 +46,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signIn = async (email: string, password: string) => {
     try {
       setError(null);
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      console.log("Attempting sign in with email:", email);
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      console.log("Sign in response:", data ? "Data received" : "No data", error ? `Error: ${error.message}` : "No error");
       if (error) setError(error.message);
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "An unexpected error occurred";
+      console.error("Sign in error:", errorMessage);
       setError("An unexpected error occurred");
-      console.error(error);
     }
   };
 

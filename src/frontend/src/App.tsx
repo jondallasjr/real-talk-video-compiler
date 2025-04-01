@@ -14,6 +14,10 @@ import Register from "./pages/Register";
 import VideoUpload from "./pages/VideoUpload";
 import VideoList from "./pages/VideoList";
 import VideoDetail from "./pages/VideoDetail";
+import ProjectList from "./pages/ProjectList";
+import ProjectDetail from "./pages/ProjectDetail";
+import ProjectCreate from "./pages/ProjectCreate";
+import ProjectEdit from "./pages/ProjectEdit";
 import NotFound from "./pages/NotFound";
 import { useAuth } from "./context/AuthContext";
 
@@ -32,9 +36,18 @@ const App: React.FC = () => {
           {/* Protected routes */}
           <Route path="/" element={<ProtectedRoute />}>
             <Route index element={<Home />} />
+            
+            {/* Project routes */}
+            <Route path="projects" element={<ProjectList />} />
+            <Route path="projects/new" element={<ProjectCreate />} />
+            <Route path="projects/:id" element={<ProjectDetail />} />
+            <Route path="projects/:id/edit" element={<ProjectEdit />} />
+            
+            {/* Video routes */}
             <Route path="upload" element={<VideoUpload />} />
             <Route path="videos" element={<VideoList />} />
             <Route path="videos/:id" element={<VideoDetail />} />
+            <Route path="projects/:id/videos/upload" element={<VideoUpload />} />
           </Route>
           
           {/* Fallback route */}

@@ -13,11 +13,11 @@ const Home: React.FC = () => {
             Perfect for content creators, educators, and influencers.
           </p>
           <div className="hero-buttons">
-            <Link to="/upload" className="button">
-              Upload New Video
+            <Link to="/projects/new" className="button">
+              Create New Project
             </Link>
-            <Link to="/videos" className="button button-secondary">
-              Browse Videos
+            <Link to="/projects" className="button button-secondary">
+              Browse Projects
             </Link>
           </div>
         </div>
@@ -54,10 +54,10 @@ const Home: React.FC = () => {
 
       <section className="cta section">
         <div className="cta-content">
-          <h2>Ready to Create Your Real Talk Video?</h2>
+          <h2>Ready to Start Your Real Talk Project?</h2>
           <p>Get started now and take your content to the next level.</p>
-          <Link to="/upload" className="button">
-            Start Creating
+          <Link to="/projects/new" className="button">
+            Create Project
           </Link>
         </div>
       </section>

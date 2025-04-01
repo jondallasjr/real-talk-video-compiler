@@ -14,7 +14,10 @@ app.use(express.urlencoded({ extended: true }));
 
 // API routes
 import videoRoutes from './routes/video.routes';
+import projectRoutes from './routes/project.routes';
+
 app.use('/api/videos', videoRoutes);
+app.use('/api/projects', projectRoutes);
 
 // Serve static frontend in production
 if (process.env.NODE_ENV === 'production') {
