@@ -191,6 +191,7 @@ router.post('/upload', async (req: Request, res: Response) => {
     return res.status(201).json(response);
   } catch (error) {
     console.error('Error uploading video:', error);
+    console.log('Error details:', error);
     return res.status(500).json({ 
       error: 'Failed to upload video', 
       details: error instanceof Error ? error.message : String(error) 
@@ -208,23 +209,25 @@ router.post('/', async (req: Request, res: Response) => {
       return res.status(401).json({ error: 'Unauthorized' });
     }
     
-    if (!title || !file_path || !project_id) {
-      return res.status(400).json({ error: 'Title, file_path, and project_id are required' });
+    if (!title || !file_path) {
+      return res.status(400).json({ error: 'Title and file_path are required' });
     }
     
-    // Verify project exists and belongs to user
-    const { data: projectData, error: projectError } = await supabase
-      .from('projects')
-      .select('*')
-      .eq('id', project_id)
-      .eq('user_id', userId)
-      .single();
-    
-    if (projectError) {
-      if (projectError.code === 'PGRST116') {
-        return res.status(404).json({ error: 'Project not found' });
+    // Verify project exists and belongs to user if project_id is provided
+    if (project_id) {
+      const { data: projectData, error: projectError } = await supabase
+        .from('projects')
+        .select('*')
+        .eq('id', project_id)
+        .eq('user_id', userId)
+        .single();
+      
+      if (projectError) {
+        if (projectError.code === 'PGRST116') {
+          return res.status(404).json({ error: 'Project not found' });
+        }
+        throw projectError;
       }
-      throw projectError;
     }
     
     const { data, error } = await supabase

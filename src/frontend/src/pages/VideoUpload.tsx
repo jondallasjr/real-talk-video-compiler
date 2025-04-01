@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import supabase from "../utils/supabase";
+import { ENDPOINTS, fetchApi, uploadFileWithProgress } from "../utils/api";
 import { FileOptions } from "@supabase/storage-js";
 import "./VideoUpload.css";
 
@@ -125,113 +126,61 @@ const VideoUpload: React.FC = () => {
       formData.append('video', file);
       
       console.log("Uploading video file to backend:", file.name);
-      
       console.log('Starting upload process...');
+      
+      // Log FormData contents for debugging
+      const formDataLog: {key: string, value: string}[] = [];
+      formData.forEach((value, key) => {
+        formDataLog.push({
+          key,
+          value: value instanceof File ? `File: ${value.name}` : String(value)
+        });
+      });
+      console.log('FormData contains:', formDataLog);
+
+      // Verify server connectivity first with debug endpoint
+      try {
+        console.log('Checking server connectivity...');
+        const debugResponse = await fetchApi(ENDPOINTS.DEBUG, {}, user.id);
+        const debugData = await debugResponse.json();
+        console.log('Server is connected:', debugData);
+      } catch (debugError) {
+        console.error('Server connectivity check failed:', debugError);
+        // Continue with upload attempt even if debug check fails
+      }
       
       // Declare uploadResult variable
       let uploadResult;
       
-      // First try the fetch API (more reliable but no progress tracking)
       try {
-        console.log('Trying fetch API first');
-        console.log('Sending request to: /api/videos/upload');
-        console.log('Request headers:', { 'user-id': user.id });
-        
-        // Log FormData contents
-        const formDataLog: {key: string, value: string}[] = [];
-        formData.forEach((value, key) => {
-          formDataLog.push({
-            key,
-            value: value instanceof File ? `File: ${value.name}` : String(value)
-          });
-        });
-        console.log('FormData contains:', formDataLog);
-
-        // Alternative: Also try with a debug endpoint to verify server connection
-        console.log('First checking server connectivity with debug endpoint...');
-        // Try direct URL first, then fallback to relative path
-        let debugResponse;
-        try {
-          debugResponse = await fetch('http://localhost:3000/api/debug');
-        } catch (error) {
-          console.log('Direct URL fetch failed, trying relative path:', error);
-          debugResponse = await fetch('/api/debug');
-        }
-        const debugData = await debugResponse.json();
-        console.log('Debug endpoint response:', debugData);
-        
-        // Now try the actual upload - first with direct URL, then fallback to relative
-        const apiUrl = debugResponse.url.includes('localhost:3000') 
-          ? 'http://localhost:3000/api/videos/upload'
-          : '/api/videos/upload';
-          
-        console.log('Using API URL:', apiUrl);
-        const response = await fetch(apiUrl, {
-          method: 'POST',
-          headers: {
-            'user-id': user.id,
+        // Try fetch API first (without progress tracking)
+        console.log(`Uploading to ${ENDPOINTS.VIDEO_UPLOAD}`);
+        const response = await fetchApi(
+          ENDPOINTS.VIDEO_UPLOAD,
+          {
+            method: 'POST',
+            body: formData
           },
-          body: formData
-        });
-        
-        // Check if the response is OK
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error(`Upload failed with status ${response.status}:`, errorText);
-          throw new Error(`HTTP Error: ${response.status} - ${errorText || 'No response details'}`);
-        }
+          user.id
+        );
         
         // Parse the response
         uploadResult = await response.json();
         console.log('Upload successful:', uploadResult);
       } catch (fetchError) {
         console.error('Fetch API upload failed:', fetchError);
-        console.log('Falling back to XMLHttpRequest...');
+        console.log('Falling back to XMLHttpRequest for progress tracking...');
         
-        // Fall back to XMLHttpRequest for progress tracking
-        const xhr = new XMLHttpRequest();
-        
-        // Create a promise to handle the XHR request
-        const uploadPromise = new Promise<any>((resolve, reject) => {
-          xhr.upload.addEventListener('progress', (event) => {
-            if (event.lengthComputable) {
-              const percentage = Math.round((event.loaded / event.total) * 100);
-              setUploadProgress(percentage);
-              console.log(`Upload progress: ${percentage}%`);
-            }
-          });
-          
-          xhr.onreadystatechange = function() {
-            console.log(`XHR state changed: readyState=${xhr.readyState}, status=${xhr.status}`);
-            if (xhr.readyState === 4) {
-              console.log(`Request completed with status: ${xhr.status}`);
-              console.log(`Response text: ${xhr.responseText?.substring(0, 200)}${xhr.responseText?.length > 200 ? '...' : ''}`);
-              if (xhr.status >= 200 && xhr.status < 300) {
-                try {
-                  const response = JSON.parse(xhr.responseText);
-                  resolve(response);
-                } catch (error) {
-                  reject(new Error('Failed to parse server response'));
-                }
-              } else {
-                reject(new Error(`HTTP Error: ${xhr.status}`));
-              }
-            }
-          };
-          
-          xhr.onerror = () => {
-            reject(new Error('Network error occurred'));
-          };
-        });
-        
-        // Open and send the request
-        console.log('Sending XMLHttpRequest to: /api/videos/upload');
-        xhr.open('POST', '/api/videos/upload', true);
-        xhr.setRequestHeader('user-id', user.id);
-        xhr.send(formData);
-        
-        // Wait for the upload to complete
-        uploadResult = await uploadPromise;
+        // Use XMLHttpRequest for progress tracking
+        uploadResult = await uploadFileWithProgress(
+          ENDPOINTS.VIDEO_UPLOAD,
+          formData,
+          user.id,
+          (percentage) => {
+            setUploadProgress(percentage);
+            console.log(`Upload progress: ${percentage}%`);
+          }
+        );
       }
       
       console.log("Upload result:", uploadResult);
@@ -251,19 +200,16 @@ const VideoUpload: React.FC = () => {
       console.log("Creating video record:", videoData);
       
       // Create a video record in the database through API
-      const response = await fetch('/api/videos', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'user-id': user.id
+      const response = await fetchApi(
+        ENDPOINTS.VIDEOS,
+        {
+          method: 'POST',
+          body: JSON.stringify(videoData)
         },
-        body: JSON.stringify(videoData)
-      });
+        user.id
+      );
       
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to create video record');
-      }
+      const videoRecord = await response.json();
       
       // Set progress to 100% to indicate completion
       setUploadProgress(100);

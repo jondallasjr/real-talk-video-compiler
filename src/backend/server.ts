@@ -1,27 +1,29 @@
 import express, { Request, Response } from 'express';
 import path from 'path';
-import dotenv from 'dotenv';
 import fileUpload from 'express-fileupload';
 import cors from 'cors';
-
-// Load environment variables
-dotenv.config();
+import serverConfig from './config/server.config';
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = serverConfig.port;
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: serverConfig.corsOrigins,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'user-id']
+}));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
 // Configure file upload middleware
 console.log("Configuring fileUpload middleware...");
 app.use(fileUpload({
   createParentPath: true,
   limits: { 
-    fileSize: 50 * 1024 * 1024 // 50MB max file size
+    fileSize: serverConfig.maxFileSize
   },
-  debug: true, // Enable debug mode to log more information
+  debug: serverConfig.uploadDebug,
 }));
 
 // Log middleware configuration
