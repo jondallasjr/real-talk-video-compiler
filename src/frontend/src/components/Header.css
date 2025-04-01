@@ -27,6 +27,7 @@
   list-style: none;
   margin: 0;
   padding: 0;
+  align-items: center;
 }
 
 .nav-item {
@@ -42,4 +43,93 @@
 
 .nav-link:hover {
   color: var(--gray);
+}
+
+/* New User Controls Styles */
+.user-controls {
+  display: flex;
+  align-items: center;
+  background-color: rgba(255, 255, 255, 0.1);
+  padding: 5px 12px;
+  border-radius: 20px;
+}
+
+.user-email {
+  font-size: 0.85rem;
+  margin-right: 10px;
+  max-width: 150px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.logout-button {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 0.85rem;
+  cursor: pointer;
+  padding: 3px 8px;
+  border-radius: 4px;
+  transition: background-color 0.3s;
+}
+
+.logout-button:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+.logout-button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+@media (max-width: 768px) {
+  .user-controls {
+    flex-direction: column;
+    padding: 5px 8px;
+    align-items: flex-end;
+  }
+  
+  .user-email {
+    margin-right: 0;
+    margin-bottom: 3px;
+    font-size: 0.75rem;
+  }
+  
+  .logout-button {
+    font-size: 0.75rem;
+    padding: 2px 5px;
+  }
+  
+  .nav-item {
+    margin-left: 12px;
+  }
+  
+  .logo a {
+    font-size: 1.2rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .nav-list {
+    flex-wrap: wrap;
+  }
+  
+  .header {
+    height: auto;
+    padding: 10px 0;
+  }
+  
+  .header-container {
+    flex-direction: column;
+    padding: 5px 0;
+  }
+  
+  .logo {
+    margin-bottom: 10px;
+  }
+  
+  .nav-item {
+    margin: 5px 10px;
+  }
 }
