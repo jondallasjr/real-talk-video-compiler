@@ -1,7 +1,5 @@
-// supabase-introspection.js
-// This script connects to your Supabase database and performs a basic introspection
-// to output the current schema structure.
-
+// sql-introspection.js
+// A direct SQL query approach to get your Supabase database schema
 require('dotenv').config();
 const { createClient } = require('@supabase/supabase-js');
 const fs = require('fs');
@@ -13,111 +11,238 @@ if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_KEY) {
   process.exit(1);
 }
 
-// Initialize Supabase client with service key (not anon key)
+// Initialize Supabase client with service key
 const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_SERVICE_KEY
 );
 
-async function getTableSchema() {
-  console.log('Fetching table schema information...');
-  
+async function main() {
   try {
-    // Direct SQL query to get tables and columns
-    const { data, error } = await supabase.from('schema_info').select('*').limit(1);
+    console.log('Fetching detailed schema information...');
+
+    // Copy the working SQL query from the paste
+    const query = `
+    WITH table_info AS (
+      SELECT
+        t.table_name,
+        json_agg(
+          json_build_object(
+            'column_name', c.column_name,
+            'data_type', c.data_type,
+            'is_nullable', c.is_nullable,
+            'column_default', c.column_default
+          ) ORDER BY c.ordinal_position
+        ) AS columns
+      FROM
+        information_schema.tables t
+        JOIN information_schema.columns c 
+          ON t.table_name = c.table_name 
+          AND t.table_schema = c.table_schema
+      WHERE
+        t.table_schema = 'public'
+      GROUP BY
+        t.table_name
+    ),
+    foreign_key_info AS (
+      SELECT
+        tc.table_name,
+        json_agg(
+          json_build_object(
+            'column_name', kcu.column_name,
+            'foreign_table', ccu.table_name,
+            'foreign_column', ccu.column_name
+          )
+        ) AS foreign_keys
+      FROM
+        information_schema.table_constraints tc
+        JOIN information_schema.key_column_usage kcu
+          ON tc.constraint_name = kcu.constraint_name
+        JOIN information_schema.constraint_column_usage ccu
+          ON tc.constraint_name = ccu.constraint_name
+      WHERE
+        tc.constraint_type = 'FOREIGN KEY'
+        AND tc.table_schema = 'public'
+      GROUP BY
+        tc.table_name
+    ),
+    primary_key_info AS (
+      SELECT
+        tc.table_name,
+        json_agg(kcu.column_name) AS primary_keys
+      FROM
+        information_schema.table_constraints tc
+        JOIN information_schema.key_column_usage kcu
+          ON tc.constraint_name = kcu.constraint_name
+      WHERE
+        tc.constraint_type = 'PRIMARY KEY'
+        AND tc.table_schema = 'public'
+      GROUP BY
+        tc.table_name
+    )
+    SELECT
+      t.table_name,
+      COALESCE(t.columns, '[]'::json) AS columns,
+      COALESCE(p.primary_keys, '[]'::json) AS primary_keys,
+      COALESCE(f.foreign_keys, '[]'::json) AS foreign_keys
+    FROM
+      table_info t
+      LEFT JOIN foreign_key_info f ON t.table_name = f.table_name
+      LEFT JOIN primary_key_info p ON t.table_name = p.table_name
+    ORDER BY
+      t.table_name;
+    `;
+
+    // Export the SQL to a file for manual execution
+    fs.writeFileSync('schema-query.sql', query);
+    console.log('SQL query saved to schema-query.sql');
+    console.log('You can run this query directly in the Supabase SQL Editor to get your schema details.');
+
+    // Try to execute directly (this might not work depending on permissions)
+    console.log('Attempting to execute the query automatically...');
     
-    if (error) {
-      console.log('Creating a query to fetch schema information...');
-      
-      // Get table information from information_schema
-      const { data: tables, error: tablesError } = await supabase
-        .from('information_schema.tables')
-        .select('table_name')
-        .eq('table_schema', 'public')
-        .order('table_name');
+    // See if we can create and call a stored procedure
+    const createProcedure = `
+      CREATE OR REPLACE FUNCTION get_schema_details()
+      RETURNS JSONB AS
+      $$
+      DECLARE
+        result JSONB;
+      BEGIN
+        EXECUTE '
+          WITH table_info AS (
+            SELECT
+              t.table_name,
+              json_agg(
+                json_build_object(
+                  ''column_name'', c.column_name,
+                  ''data_type'', c.data_type,
+                  ''is_nullable'', c.is_nullable,
+                  ''column_default'', c.column_default
+                ) ORDER BY c.ordinal_position
+              ) AS columns
+            FROM
+              information_schema.tables t
+              JOIN information_schema.columns c 
+                ON t.table_name = c.table_name 
+                AND t.table_schema = c.table_schema
+            WHERE
+              t.table_schema = ''public''
+            GROUP BY
+              t.table_name
+          ),
+          foreign_key_info AS (
+            SELECT
+              tc.table_name,
+              json_agg(
+                json_build_object(
+                  ''column_name'', kcu.column_name,
+                  ''foreign_table'', ccu.table_name,
+                  ''foreign_column'', ccu.column_name
+                )
+              ) AS foreign_keys
+            FROM
+              information_schema.table_constraints tc
+              JOIN information_schema.key_column_usage kcu
+                ON tc.constraint_name = kcu.constraint_name
+              JOIN information_schema.constraint_column_usage ccu
+                ON tc.constraint_name = ccu.constraint_name
+            WHERE
+              tc.constraint_type = ''FOREIGN KEY''
+              AND tc.table_schema = ''public''
+            GROUP BY
+              tc.table_name
+          ),
+          primary_key_info AS (
+            SELECT
+              tc.table_name,
+              json_agg(kcu.column_name) AS primary_keys
+            FROM
+              information_schema.table_constraints tc
+              JOIN information_schema.key_column_usage kcu
+                ON tc.constraint_name = kcu.constraint_name
+            WHERE
+              tc.constraint_type = ''PRIMARY KEY''
+              AND tc.table_schema = ''public''
+            GROUP BY
+              tc.table_name
+          )
+          SELECT json_agg(
+            json_build_object(
+              ''table_name'', t.table_name,
+              ''columns'', COALESCE(t.columns, ''[]''::json),
+              ''primary_keys'', COALESCE(p.primary_keys, ''[]''::json),
+              ''foreign_keys'', COALESCE(f.foreign_keys, ''[]''::json)
+            )
+          )
+          FROM
+            table_info t
+            LEFT JOIN foreign_key_info f ON t.table_name = f.table_name
+            LEFT JOIN primary_key_info p ON t.table_name = p.table_name
+          ORDER BY
+            t.table_name
+        ' INTO result;
         
-      if (tablesError) {
-        console.error('Error fetching tables:', tablesError);
-        return null;
-      }
+        RETURN result;
+      END;
+      $$
+      LANGUAGE plpgsql
+      SECURITY DEFINER;
+    `;
+    
+    try {
+      // Try to create the stored procedure
+      const { error: createError } = await supabase.rpc('exec_sql', { 
+        sql_string: createProcedure 
+      });
       
-      // For each table, get its columns
-      const tableSchema = [];
-      for (const table of tables) {
-        const tableName = table.table_name;
+      if (createError) {
+        console.log('Could not create stored procedure, using alternative method');
+      } else {
+        console.log('Stored procedure created, calling it...');
+        const { data, error } = await supabase.rpc('get_schema_details');
         
-        const { data: columns, error: columnsError } = await supabase
-          .from('information_schema.columns')
-          .select('column_name, data_type, is_nullable, column_default')
-          .eq('table_schema', 'public')
-          .eq('table_name', tableName)
-          .order('ordinal_position');
+        if (error) {
+          console.error('Error calling stored procedure:', error);
+        } else {
+          // Write the results to a file
+          fs.writeFileSync(
+            'supabase-schema-detailed.json', 
+            JSON.stringify(data, null, 2)
+          );
           
-        if (columnsError) {
-          console.error(`Error fetching columns for table ${tableName}:`, columnsError);
-          continue;
+          console.log('Schema information saved to supabase-schema-detailed.json');
+          return;
         }
-        
-        tableSchema.push({
-          table_name: tableName,
-          columns: columns
-        });
       }
-      
-      return tableSchema;
+    } catch (err) {
+      console.log('Error creating or calling stored procedure:', err.message);
     }
     
-    // If we reached here, we successfully queried a view that may have already been set up
-    return data;
-  } catch (error) {
-    console.error('Error in getTableSchema:', error);
-    return null;
-  }
-}
-
-async function getStorageBuckets() {
-  console.log('Attempting to fetch storage bucket information...');
-  
-  try {
-    // Try to access storage buckets (this might fail if permissions aren't properly set)
-    const { data, error } = await supabase
+    // Get storage buckets (this should work regardless)
+    console.log('Fetching storage buckets...');
+    const { data: buckets, error: bucketsError } = await supabase
       .storage
       .listBuckets();
     
-    if (error) {
-      console.error('Error fetching storage buckets:', error);
-      return [];
+    if (bucketsError) {
+      console.error('Error fetching storage buckets:', bucketsError);
+    } else {
+      // Write just the buckets information to a file
+      fs.writeFileSync(
+        'supabase-buckets.json', 
+        JSON.stringify(buckets, null, 2)
+      );
+      
+      console.log('Storage bucket information saved to supabase-buckets.json');
     }
     
-    return data;
-  } catch (error) {
-    console.error('Error in getStorageBuckets:', error);
-    return [];
-  }
-}
-
-async function main() {
-  try {
-    // Get database schema information
-    const tableSchema = await getTableSchema();
-    const storageBuckets = await getStorageBuckets();
-    
-    const schemaInfo = {
-      tables: tableSchema,
-      storage: {
-        buckets: storageBuckets
-      },
-      timestamp: new Date().toISOString()
-    };
-    
-    // Write to file
-    fs.writeFileSync(
-      'supabase-schema.json', 
-      JSON.stringify(schemaInfo, null, 2)
-    );
-    
-    console.log('Schema information saved to supabase-schema.json');
-    console.log('You can share this file to provide context about your database structure.');
+    // Final instructions
+    console.log('\nInstructions:');
+    console.log('1. Go to the Supabase SQL Editor at: https://app.supabase.io/project/_/sql');
+    console.log('2. Open schema-query.sql and copy its contents');
+    console.log('3. Paste into the SQL Editor and run the query');
+    console.log('4. Copy the results and save to a file named "supabase-schema-detailed.json"');
     
   } catch (error) {
     console.error('Unexpected error:', error);

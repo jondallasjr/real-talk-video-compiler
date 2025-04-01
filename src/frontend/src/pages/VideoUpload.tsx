@@ -2,7 +2,13 @@ import React, { useState, useEffect } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import supabase from "../utils/supabase";
+import { FileOptions } from "@supabase/storage-js";
 import "./VideoUpload.css";
+
+// Extended FileOptions type that includes onUploadProgress
+interface ExtendedFileOptions extends FileOptions {
+  onUploadProgress?: (progress: ProgressEvent) => void;
+}
 
 interface Project {
   id: string;
@@ -107,82 +113,67 @@ const VideoUpload: React.FC = () => {
     }
     
     setIsUploading(true);
+    setUploadProgress(0);
     
     try {
       if (!file) {
         throw new Error("No file selected");
       }
-
-      // Create form data for file upload
-      const formData = new FormData();
-      formData.append("video", file);
-      formData.append("title", title);
-      if (description) formData.append("description", description);
-      if (selectedProjectId) formData.append("projectId", selectedProjectId);
-
-      // Create upload progress tracker
-      const progressInterval = setInterval(() => {
-        setUploadProgress((prev) => {
-          // Simulate progress until we get actual upload progress
-          if (prev >= 90) {
-            return 90; // Cap at 90% until the upload completes
-          }
-          return prev + 5;
-        });
-      }, 500);
-
-      // Upload directly to Supabase storage
-      const fileExt = file.name.split('.').pop();
-      const filePath = `videos/${user?.id}/${Math.random().toString(36).substring(2)}.${fileExt}`;
       
-      const { data: uploadData, error: uploadError } = await supabase.storage
+      // Generate a unique file name to avoid collisions
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}-${Math.floor(Math.random() * 1000)}.${fileExt}`;
+      const filePath = `videos/${fileName}`;
+      
+      // Upload to Supabase Storage with progress tracking
+      const uploadOptions: ExtendedFileOptions = {
+        cacheControl: '3600',
+        upsert: false,
+        // Use XMLHttpRequest to track upload progress
+        onUploadProgress: (progress: ProgressEvent) => {
+          // Calculate percentage
+          const percentage = (progress.loaded / progress.total) * 100;
+          setUploadProgress(Math.round(percentage));
+        },
+      };
+      
+      const { error: uploadError, data } = await supabase.storage
         .from('videos')
-        .upload(filePath, file);
-
+        .upload(filePath, file, uploadOptions);
+        
       if (uploadError) {
         throw uploadError;
       }
-
-      // Get public URL
-      const { data: urlData } = supabase.storage
+      
+      // Create record in videos table
+      const { error: dbError } = await supabase
         .from('videos')
-        .getPublicUrl(filePath);
-
-      // Create video record in database
-      const { data, error } = await supabase.from('videos').insert([
-        {
-          title,
-          description: description || null,
-          project_id: selectedProjectId || null,
-          file_path: filePath,
-          file_url: urlData.publicUrl,
-          file_size: file.size,
-          status: 'uploaded'
-        }
-      ]).select();
-
-      clearInterval(progressInterval);
+        .insert([
+          {
+            title,
+            description,
+            file_path: filePath,
+            status: 'uploaded'
+          }
+        ]);
+        
+      if (dbError) {
+        throw dbError;
+      }
+      
+      // Set progress to 100% to indicate completion
       setUploadProgress(100);
       
-      if (error) {
-        throw error;
-      }
-
-      // Navigate to appropriate page after successful upload
+      // Delay navigation slightly to show the 100% progress state
       setTimeout(() => {
-        if (selectedProjectId) {
-          navigate(`/projects/${selectedProjectId}`);
-        } else {
-          navigate("/videos");
-        }
-      }, 1000);
-    } catch (err) {
-      console.error("Upload error:", err);
-      setErrors({ 
-        submit: "Failed to upload video. Please try again." 
-      });
+        setIsUploading(false);
+        navigate("/videos");
+      }, 500);
+      
+    } catch (error) {
+      console.error("Upload error:", error);
+      setErrors({ ...errors, submit: "Failed to upload video. Please try again." });
       setIsUploading(false);
-      setUploadProgress(0);
     }
   };
 

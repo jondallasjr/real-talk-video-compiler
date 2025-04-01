@@ -1,28 +1,484 @@
-{
-  "tables": null,
-  "storage": {
-    "buckets": [
+[
+  {
+    "table_name": "analyses",
+    "columns": [
       {
-        "id": "videos",
-        "name": "videos",
-        "owner": "",
-        "public": true,
-        "file_size_limit": null,
-        "allowed_mime_types": null,
-        "created_at": "2025-04-01T03:09:26.135Z",
-        "updated_at": "2025-04-01T03:09:26.135Z"
+        "column_name": "id",
+        "data_type": "uuid",
+        "is_nullable": "NO",
+        "column_default": "uuid_generate_v4()"
       },
       {
-        "id": "exports",
-        "name": "exports",
-        "owner": "",
-        "public": true,
-        "file_size_limit": null,
-        "allowed_mime_types": null,
-        "created_at": "2025-04-01T03:09:51.173Z",
-        "updated_at": "2025-04-01T03:09:51.173Z"
+        "column_name": "video_id",
+        "data_type": "uuid",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "column_name": "analysis_type",
+        "data_type": "text",
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "column_name": "result_json",
+        "data_type": "jsonb",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "column_name": "created_at",
+        "data_type": "timestamp with time zone",
+        "is_nullable": "YES",
+        "column_default": "now()"
+      }
+    ],
+    "primary_keys": [
+      "id"
+    ],
+    "foreign_keys": [
+      {
+        "column_name": "video_id",
+        "foreign_table": "videos",
+        "foreign_column": "id"
       }
     ]
   },
-  "timestamp": "2025-04-01T08:57:51.555Z"
-}
+  {
+    "table_name": "compilations",
+    "columns": [
+      {
+        "column_name": "id",
+        "data_type": "uuid",
+        "is_nullable": "NO",
+        "column_default": "uuid_generate_v4()"
+      },
+      {
+        "column_name": "project_id",
+        "data_type": "uuid",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "column_name": "title",
+        "data_type": "text",
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "column_name": "script_json",
+        "data_type": "jsonb",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "column_name": "created_at",
+        "data_type": "timestamp with time zone",
+        "is_nullable": "YES",
+        "column_default": "now()"
+      },
+      {
+        "column_name": "updated_at",
+        "data_type": "timestamp with time zone",
+        "is_nullable": "YES",
+        "column_default": "now()"
+      }
+    ],
+    "primary_keys": [
+      "id"
+    ],
+    "foreign_keys": [
+      {
+        "column_name": "project_id",
+        "foreign_table": "projects",
+        "foreign_column": "id"
+      }
+    ]
+  },
+  {
+    "table_name": "excerpts",
+    "columns": [
+      {
+        "column_name": "id",
+        "data_type": "uuid",
+        "is_nullable": "NO",
+        "column_default": "uuid_generate_v4()"
+      },
+      {
+        "column_name": "video_id",
+        "data_type": "uuid",
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "column_name": "user_id",
+        "data_type": "uuid",
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "column_name": "title",
+        "data_type": "text",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "column_name": "start_time",
+        "data_type": "numeric",
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "column_name": "end_time",
+        "data_type": "numeric",
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "column_name": "text",
+        "data_type": "text",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "column_name": "created_at",
+        "data_type": "timestamp with time zone",
+        "is_nullable": "YES",
+        "column_default": "now()"
+      },
+      {
+        "column_name": "updated_at",
+        "data_type": "timestamp with time zone",
+        "is_nullable": "YES",
+        "column_default": "now()"
+      }
+    ],
+    "primary_keys": [
+      "id"
+    ],
+    "foreign_keys": [
+      {
+        "column_name": "user_id",
+        "foreign_table": "users",
+        "foreign_column": "id"
+      },
+      {
+        "column_name": "video_id",
+        "foreign_table": "videos",
+        "foreign_column": "id"
+      }
+    ]
+  },
+  {
+    "table_name": "projects",
+    "columns": [
+      {
+        "column_name": "id",
+        "data_type": "uuid",
+        "is_nullable": "NO",
+        "column_default": "uuid_generate_v4()"
+      },
+      {
+        "column_name": "title",
+        "data_type": "text",
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "column_name": "description",
+        "data_type": "text",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "column_name": "created_at",
+        "data_type": "timestamp with time zone",
+        "is_nullable": "YES",
+        "column_default": "now()"
+      },
+      {
+        "column_name": "updated_at",
+        "data_type": "timestamp with time zone",
+        "is_nullable": "YES",
+        "column_default": "now()"
+      },
+      {
+        "column_name": "user_id",
+        "data_type": "uuid",
+        "is_nullable": "YES",
+        "column_default": null
+      }
+    ],
+    "primary_keys": [
+      "id"
+    ],
+    "foreign_keys": [
+      {
+        "column_name": "user_id",
+        "foreign_table": "users",
+        "foreign_column": "id"
+      }
+    ]
+  },
+  {
+    "table_name": "speakers",
+    "columns": [
+      {
+        "column_name": "id",
+        "data_type": "uuid",
+        "is_nullable": "NO",
+        "column_default": "uuid_generate_v4()"
+      },
+      {
+        "column_name": "video_id",
+        "data_type": "uuid",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "column_name": "name",
+        "data_type": "text",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "column_name": "diarization_label",
+        "data_type": "text",
+        "is_nullable": "YES",
+        "column_default": null
+      }
+    ],
+    "primary_keys": [
+      "id"
+    ],
+    "foreign_keys": [
+      {
+        "column_name": "video_id",
+        "foreign_table": "videos",
+        "foreign_column": "id"
+      }
+    ]
+  },
+  {
+    "table_name": "transcript_segments",
+    "columns": [
+      {
+        "column_name": "id",
+        "data_type": "uuid",
+        "is_nullable": "NO",
+        "column_default": "uuid_generate_v4()"
+      },
+      {
+        "column_name": "transcript_id",
+        "data_type": "uuid",
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "column_name": "user_id",
+        "data_type": "uuid",
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "column_name": "speaker_id",
+        "data_type": "uuid",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "column_name": "start_time",
+        "data_type": "numeric",
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "column_name": "end_time",
+        "data_type": "numeric",
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "column_name": "text",
+        "data_type": "text",
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "column_name": "confidence",
+        "data_type": "numeric",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "column_name": "created_at",
+        "data_type": "timestamp with time zone",
+        "is_nullable": "YES",
+        "column_default": "now()"
+      }
+    ],
+    "primary_keys": [
+      "id"
+    ],
+    "foreign_keys": [
+      {
+        "column_name": "speaker_id",
+        "foreign_table": "speakers",
+        "foreign_column": "id"
+      },
+      {
+        "column_name": "transcript_id",
+        "foreign_table": "transcripts",
+        "foreign_column": "id"
+      },
+      {
+        "column_name": "user_id",
+        "foreign_table": "users",
+        "foreign_column": "id"
+      }
+    ]
+  },
+  {
+    "table_name": "transcripts",
+    "columns": [
+      {
+        "column_name": "id",
+        "data_type": "uuid",
+        "is_nullable": "NO",
+        "column_default": "uuid_generate_v4()"
+      },
+      {
+        "column_name": "video_id",
+        "data_type": "uuid",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "column_name": "full_text",
+        "data_type": "text",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "column_name": "timestamps_json",
+        "data_type": "jsonb",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "column_name": "created_at",
+        "data_type": "timestamp with time zone",
+        "is_nullable": "YES",
+        "column_default": "now()"
+      },
+      {
+        "column_name": "updated_at",
+        "data_type": "timestamp with time zone",
+        "is_nullable": "YES",
+        "column_default": "now()"
+      }
+    ],
+    "primary_keys": [
+      "id"
+    ],
+    "foreign_keys": [
+      {
+        "column_name": "video_id",
+        "foreign_table": "videos",
+        "foreign_column": "id"
+      }
+    ]
+  },
+  {
+    "table_name": "videos",
+    "columns": [
+      {
+        "column_name": "id",
+        "data_type": "uuid",
+        "is_nullable": "NO",
+        "column_default": "uuid_generate_v4()"
+      },
+      {
+        "column_name": "title",
+        "data_type": "text",
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "column_name": "description",
+        "data_type": "text",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "column_name": "file_path",
+        "data_type": "text",
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "column_name": "duration",
+        "data_type": "integer",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "column_name": "created_at",
+        "data_type": "timestamp with time zone",
+        "is_nullable": "YES",
+        "column_default": "now()"
+      },
+      {
+        "column_name": "updated_at",
+        "data_type": "timestamp with time zone",
+        "is_nullable": "YES",
+        "column_default": "now()"
+      },
+      {
+        "column_name": "project_id",
+        "data_type": "uuid",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "column_name": "user_id",
+        "data_type": "uuid",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "column_name": "status",
+        "data_type": "text",
+        "is_nullable": "YES",
+        "column_default": "'uploaded'::text"
+      },
+      {
+        "column_name": "file_url",
+        "data_type": "text",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "column_name": "file_size",
+        "data_type": "integer",
+        "is_nullable": "YES",
+        "column_default": null
+      }
+    ],
+    "primary_keys": [
+      "id"
+    ],
+    "foreign_keys": [
+      {
+        "column_name": "user_id",
+        "foreign_table": "users",
+        "foreign_column": "id"
+      },
+      {
+        "column_name": "project_id",
+        "foreign_table": "projects",
+        "foreign_column": "id"
+      }
+    ]
+  }
+]

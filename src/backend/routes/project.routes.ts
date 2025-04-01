@@ -1,11 +1,11 @@
-import express from "express";
+import express, { Request, Response } from "express";
 import { v4 as uuidv4 } from "uuid";
 import supabase from "../config/supabase";
 
 const router = express.Router();
 
 // Get all projects for the authenticated user
-router.get("/", async (req, res) => {
+router.get("/", async (req: Request, res: Response) => {
   try {
     const userId = req.headers["user-id"] as string;
     
@@ -31,7 +31,7 @@ router.get("/", async (req, res) => {
 });
 
 // Get a specific project by ID
-router.get("/:id", async (req, res) => {
+router.get("/:id", async (req: Request, res: Response) => {
   try {
     const userId = req.headers["user-id"] as string;
     const projectId = req.params.id;
@@ -62,7 +62,7 @@ router.get("/:id", async (req, res) => {
 });
 
 // Create a new project
-router.post("/", async (req, res) => {
+router.post("/", async (req: Request, res: Response) => {
   try {
     const userId = req.headers["user-id"] as string;
     const { title, description, status } = req.body;
@@ -100,7 +100,7 @@ router.post("/", async (req, res) => {
 });
 
 // Update a project
-router.put("/:id", async (req, res) => {
+router.put("/:id", async (req: Request, res: Response) => {
   try {
     const userId = req.headers["user-id"] as string;
     const projectId = req.params.id;
@@ -150,7 +150,7 @@ router.put("/:id", async (req, res) => {
 });
 
 // Delete a project
-router.delete("/:id", async (req, res) => {
+router.delete("/:id", async (req: Request, res: Response) => {
   try {
     const userId = req.headers["user-id"] as string;
     const projectId = req.params.id;
@@ -193,7 +193,7 @@ router.delete("/:id", async (req, res) => {
 });
 
 // Get all videos in a project
-router.get("/:id/videos", async (req, res) => {
+router.get("/:id/videos", async (req: Request, res: Response) => {
   try {
     const userId = req.headers["user-id"] as string;
     const projectId = req.params.id;
