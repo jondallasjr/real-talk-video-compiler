@@ -1,7 +1,23 @@
 import dotenv from 'dotenv';
+import fs from 'fs';
+import path from 'path';
 
 // Load environment variables
 dotenv.config();
+
+// Check for dynamic port file - this should override the regular .env
+try {
+  const portEnvPath = path.join(process.cwd(), '.env.port');
+  if (fs.existsSync(portEnvPath)) {
+    const portConfig = require('dotenv').parse(fs.readFileSync(portEnvPath));
+    if (portConfig.PORT) {
+      process.env.PORT = portConfig.PORT;
+      console.log(`Using dynamically assigned port: ${portConfig.PORT}`);
+    }
+  }
+} catch (error) {
+  console.log('No dynamic port config found, using default or .env PORT');
+}
 
 interface ServerConfig {
   port: number;
@@ -15,7 +31,14 @@ interface ServerConfig {
 const config: ServerConfig = {
   port: parseInt(process.env.PORT || '4000', 10),
   env: process.env.NODE_ENV || 'development',
-  corsOrigins: ['http://localhost:3000', 'http://localhost:4000', 'http://localhost:8000'], 
+  corsOrigins: [
+    'http://localhost:3000', 
+    'http://localhost:4000', 
+    'http://localhost:4001',
+    'http://localhost:4002',
+    'http://localhost:4003',
+    'http://localhost:8000'
+  ], 
   maxFileSize: 50 * 1024 * 1024, // 50MB max file size
   uploadDebug: process.env.NODE_ENV === 'development',
 };

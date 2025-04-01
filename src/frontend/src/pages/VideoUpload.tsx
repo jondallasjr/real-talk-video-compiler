@@ -193,7 +193,8 @@ const VideoUpload: React.FC = () => {
         description,
         project_id: selectedProjectId || undefined,
         file_path,
-        public_url,
+        public_url,  // API maps this to file_url in backend
+        size: file?.size || 0,
         status: 'pending'
       };
       

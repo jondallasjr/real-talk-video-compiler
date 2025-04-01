@@ -1,0 +1,22 @@
+[
+  {
+    "id": "videos",
+    "name": "videos",
+    "owner": "",
+    "public": true,
+    "file_size_limit": null,
+    "allowed_mime_types": null,
+    "created_at": "2025-04-01T03:09:26.135Z",
+    "updated_at": "2025-04-01T03:09:26.135Z"
+  },
+  {
+    "id": "exports",
+    "name": "exports",
+    "owner": "",
+    "public": true,
+    "file_size_limit": null,
+    "allowed_mime_types": null,
+    "created_at": "2025-04-01T03:09:51.173Z",
+    "updated_at": "2025-04-01T03:09:51.173Z"
+  }
+]

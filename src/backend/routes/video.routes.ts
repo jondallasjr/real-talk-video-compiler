@@ -203,7 +203,7 @@ router.post('/upload', async (req: Request, res: Response) => {
 router.post('/', async (req: Request, res: Response) => {
   try {
     const userId = req.headers['user-id'] as string;
-    const { title, description, project_id, file_path, public_url, duration, status } = req.body;
+    const { title, description, project_id, file_path, public_url, size, duration, status } = req.body;
     
     if (!userId) {
       return res.status(401).json({ error: 'Unauthorized' });
@@ -240,10 +240,10 @@ router.post('/', async (req: Request, res: Response) => {
           title,
           description,
           file_path,
-          public_url,
+          file_url: public_url,  // Use file_url instead of public_url
+          file_size: size || 0,
           duration: duration || 0,
-          status: status || 'pending',
-          processing_status: 'pending'
+          status: status || 'pending'
         }
       ])
       .select();
@@ -264,7 +264,7 @@ router.put('/:id', async (req: Request, res: Response) => {
   try {
     const userId = req.headers['user-id'] as string;
     const { id } = req.params;
-    const { title, description, project_id, status, processing_status } = req.body;
+    const { title, description, project_id, status } = req.body;
     
     if (!userId) {
       return res.status(401).json({ error: 'Unauthorized' });
@@ -294,7 +294,6 @@ router.put('/:id', async (req: Request, res: Response) => {
     if (description !== undefined) updateData.description = description;
     if (project_id) updateData.project_id = project_id;
     if (status) updateData.status = status;
-    if (processing_status) updateData.processing_status = processing_status;
     
     const { data, error } = await supabase
       .from('videos')
