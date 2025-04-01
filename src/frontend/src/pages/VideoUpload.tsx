@@ -1,16 +1,51 @@
-import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
+import supabase from "../utils/supabase";
 import "./VideoUpload.css";
+
+interface Project {
+  id: string;
+  title: string;
+}
 
 const VideoUpload: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const { id: projectId } = useParams<{ id: string }>();
+  const { user } = useAuth();
+  
   const [title, setTitle] = useState<string>("");
   const [description, setDescription] = useState<string>("");
   const [file, setFile] = useState<File | null>(null);
+  const [selectedProjectId, setSelectedProjectId] = useState<string>(projectId || "");
+  const [projects, setProjects] = useState<Project[]>([]);
   const [isDragging, setIsDragging] = useState<boolean>(false);
   const [isUploading, setIsUploading] = useState<boolean>(false);
   const [uploadProgress, setUploadProgress] = useState<number>(0);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
+
+  // Fetch projects for dropdown
+  useEffect(() => {
+    const fetchProjects = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("projects")
+          .select("id, title")
+          .order("created_at", { ascending: false });
+
+        if (error) {
+          throw error;
+        }
+
+        setProjects(data || []);
+      } catch (err) {
+        console.error("Error fetching projects:", err);
+      }
+    };
+
+    fetchProjects();
+  }, [user]);
 
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -56,10 +91,6 @@ const VideoUpload: React.FC = () => {
       newErrors.title = "Title is required";
     }
     
-    if (!description.trim()) {
-      newErrors.description = "Description is required";
-    }
-    
     if (!file) {
       newErrors.file = "Please upload a video file";
     }
@@ -77,28 +108,82 @@ const VideoUpload: React.FC = () => {
     
     setIsUploading(true);
     
-    // Simulate upload progress
-    const interval = setInterval(() => {
-      setUploadProgress((prev) => {
-        if (prev >= 100) {
-          clearInterval(interval);
-          return 100;
+    try {
+      if (!file) {
+        throw new Error("No file selected");
+      }
+
+      // Create form data for file upload
+      const formData = new FormData();
+      formData.append("video", file);
+      formData.append("title", title);
+      if (description) formData.append("description", description);
+      if (selectedProjectId) formData.append("projectId", selectedProjectId);
+
+      // Create upload progress tracker
+      const progressInterval = setInterval(() => {
+        setUploadProgress((prev) => {
+          // Simulate progress until we get actual upload progress
+          if (prev >= 90) {
+            return 90; // Cap at 90% until the upload completes
+          }
+          return prev + 5;
+        });
+      }, 500);
+
+      // Upload directly to Supabase storage
+      const fileExt = file.name.split('.').pop();
+      const filePath = `videos/${user?.id}/${Math.random().toString(36).substring(2)}.${fileExt}`;
+      
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('videos')
+        .upload(filePath, file);
+
+      if (uploadError) {
+        throw uploadError;
+      }
+
+      // Get public URL
+      const { data: urlData } = supabase.storage
+        .from('videos')
+        .getPublicUrl(filePath);
+
+      // Create video record in database
+      const { data, error } = await supabase.from('videos').insert([
+        {
+          title,
+          description: description || null,
+          project_id: selectedProjectId || null,
+          file_path: filePath,
+          file_url: urlData.publicUrl,
+          file_size: file.size,
+          status: 'uploaded'
         }
-        return prev + 10;
-      });
-    }, 500);
-    
-    // Simulate API call delay
-    setTimeout(() => {
-      clearInterval(interval);
+      ]).select();
+
+      clearInterval(progressInterval);
       setUploadProgress(100);
       
+      if (error) {
+        throw error;
+      }
+
+      // Navigate to appropriate page after successful upload
       setTimeout(() => {
-        setIsUploading(false);
-        // Navigate to video list on success
-        navigate("/videos");
-      }, 500);
-    }, 5000);
+        if (selectedProjectId) {
+          navigate(`/projects/${selectedProjectId}`);
+        } else {
+          navigate("/videos");
+        }
+      }, 1000);
+    } catch (err) {
+      console.error("Upload error:", err);
+      setErrors({ 
+        submit: "Failed to upload video. Please try again." 
+      });
+      setIsUploading(false);
+      setUploadProgress(0);
+    }
   };
 
   return (
@@ -108,7 +193,7 @@ const VideoUpload: React.FC = () => {
       <div className="card upload-card">
         <form onSubmit={handleSubmit}>
           <div className="form-group">
-            <label htmlFor="title">Title</label>
+            <label htmlFor="title">Title*</label>
             <input
               type="text"
               id="title"
@@ -132,11 +217,31 @@ const VideoUpload: React.FC = () => {
               placeholder="Enter video description"
               disabled={isUploading}
             ></textarea>
-            {errors.description && <div className="error-message">{errors.description}</div>}
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="project">Project</label>
+            <select
+              id="project"
+              className="form-control"
+              value={selectedProjectId}
+              onChange={(e) => setSelectedProjectId(e.target.value)}
+              disabled={isUploading || !!projectId}
+            >
+              <option value="">Select a project (optional)</option>
+              {projects.map((project) => (
+                <option key={project.id} value={project.id}>
+                  {project.title}
+                </option>
+              ))}
+            </select>
+            <small className="form-text">
+              {projectId ? "This video will be added to the current project" : "Select a project to add this video to, or leave blank"}
+            </small>
           </div>
           
           <div className="form-group">
-            <label>Video File</label>
+            <label>Video File*</label>
             <div 
               className={`upload-area ${isDragging ? 'dragging' : ''} ${file ? 'has-file' : ''}`}
               onDragOver={handleDragOver}
@@ -188,6 +293,8 @@ const VideoUpload: React.FC = () => {
               <div className="progress-text">{uploadProgress}% Uploaded</div>
             </div>
           )}
+
+          {errors.submit && <div className="error-message submit-error">{errors.submit}</div>}
           
           <div className="form-actions">
             <button 

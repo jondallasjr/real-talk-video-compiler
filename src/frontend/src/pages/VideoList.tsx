@@ -1,13 +1,20 @@
 import React, { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import VideoCard from "../components/VideoCard";
+import { useAuth } from "../context/AuthContext";
+import supabase from "../utils/supabase";
 import "./VideoList.css";
 
 interface Video {
   id: string;
   title: string;
-  thumbnail?: string;
-  duration?: number;
-  createdAt: string;
+  description: string | null;
+  file_url: string | null;
+  file_size: number | null;
+  status: string;
+  created_at: string;
+  project: { title: string } | null;
+  project_id: string | null;
 }
 
 const VideoList: React.FC = () => {
@@ -15,52 +22,46 @@ const VideoList: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState<string>("");
+  const { user } = useAuth();
 
   useEffect(() => {
     const fetchVideos = async () => {
       try {
-        // In a real app, this would come from an API
-        // For now, we'll use dummy data
-        const dummyVideos: Video[] = [
-          {
-            id: "1",
-            title: "Introduction to Real Talk Series",
-            duration: 320,
-            createdAt: "2023-05-15T10:30:00Z",
-          },
-          {
-            id: "2",
-            title: "Behind the Scenes: Creating Authentic Content",
-            duration: 540,
-            createdAt: "2023-06-22T14:15:00Z",
-          },
-          {
-            id: "3",
-            title: "How to Connect with Your Audience",
-            duration: 420,
-            createdAt: "2023-07-10T09:45:00Z",
-          },
-          {
-            id: "4",
-            title: "Real Talk: Facing Challenges as a Creator",
-            duration: 680,
-            createdAt: "2023-08-05T16:20:00Z",
-          },
-        ];
+        setLoading(true);
+        setError(null);
 
-        // Simulate API delay
-        setTimeout(() => {
-          setVideos(dummyVideos);
-          setLoading(false);
-        }, 1000);
+        const { data, error } = await supabase
+          .from("videos")
+          .select(`
+            *,
+            projects (id, title)
+          `)
+          .order("created_at", { ascending: false });
+
+        if (error) {
+          throw error;
+        }
+
+        // Map the data to match the Video interface
+        const formattedVideos = data.map((video: any) => ({
+          ...video,
+          project: video.projects,
+          project_id: video.project_id
+        }));
+
+        setVideos(formattedVideos);
       } catch (err) {
+        console.error("Error fetching videos:", err);
         setError("Failed to load videos. Please try again later.");
+      } finally {
         setLoading(false);
       }
     };
 
-    fetchVideos();
-  }, []);
+    if (user) {
+      fetchVideos();
+    }
+  }, [user]);
 
   // Filter videos based on search term
   const filteredVideos = videos.filter((video) =>
@@ -69,7 +70,12 @@ const VideoList: React.FC = () => {
 
   return (
     <div className="video-list-page">
-      <h1 className="page-title">Your Videos</h1>
+      <div className="video-list-header">
+        <h1 className="page-title">Your Videos</h1>
+        <Link to="/upload" className="button upload-button">
+          Upload New Video
+        </Link>
+      </div>
       
       <div className="search-bar">
         <input
@@ -87,9 +93,17 @@ const VideoList: React.FC = () => {
         <div className="error-message">{error}</div>
       ) : filteredVideos.length === 0 ? (
         <div className="no-videos">
-          {searchTerm
-            ? "No videos matching your search."
-            : "No videos found. Upload your first video!"}
+          {searchTerm ? (
+            "No videos matching your search."
+          ) : (
+            <div className="empty-state">
+              <h2>No videos found</h2>
+              <p>Upload your first video to get started!</p>
+              <Link to="/upload" className="button">
+                Upload Video
+              </Link>
+            </div>
+          )}
         </div>
       ) : (
         <div className="video-grid">

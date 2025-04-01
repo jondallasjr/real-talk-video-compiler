@@ -1,85 +1,99 @@
 import React, { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, Link } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
+import supabase from "../utils/supabase";
 import "./VideoDetail.css";
 
 interface Video {
   id: string;
   title: string;
-  description: string;
-  videoUrl: string;
-  thumbnail?: string;
-  duration?: number;
-  createdAt: string;
+  description: string | null;
+  file_url: string | null;
+  file_size: number | null;
+  status: string;
+  created_at: string;
+  updated_at: string;
+  project: { id: string; title: string } | null;
+  project_id: string | null;
 }
 
 const VideoDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [video, setVideo] = useState<Video | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState<boolean>(false);
 
   useEffect(() => {
-    const fetchVideo = async () => {
-      try {
-        // In a real app, this would fetch from an API
-        // For now, we'll use dummy data
-        const dummyVideos: { [key: string]: Video } = {
-          "1": {
-            id: "1",
-            title: "Introduction to Real Talk Series",
-            description: "This video introduces the Real Talk series, explaining the purpose and what viewers can expect from future episodes. We dive into the philosophy behind authentic content creation and how it connects with audiences.",
-            videoUrl: "https://example.com/videos/intro.mp4",
-            duration: 320,
-            createdAt: "2023-05-15T10:30:00Z",
-          },
-          "2": {
-            id: "2",
-            title: "Behind the Scenes: Creating Authentic Content",
-            description: "Go behind the scenes to see how authentic content is created. This episode covers everything from planning to execution, focusing on maintaining authenticity throughout the creative process.",
-            videoUrl: "https://example.com/videos/behind-scenes.mp4",
-            duration: 540,
-            createdAt: "2023-06-22T14:15:00Z",
-          },
-          "3": {
-            id: "3",
-            title: "How to Connect with Your Audience",
-            description: "Learn strategies for connecting with your audience on a deeper level. This video discusses the importance of vulnerability, storytelling, and creating meaningful engagement.",
-            videoUrl: "https://example.com/videos/connect.mp4",
-            duration: 420,
-            createdAt: "2023-07-10T09:45:00Z",
-          },
-          "4": {
-            id: "4",
-            title: "Real Talk: Facing Challenges as a Creator",
-            description: "A candid discussion about the challenges creators face and strategies to overcome them. Topics include burnout, creative blocks, dealing with negative feedback, and maintaining motivation.",
-            videoUrl: "https://example.com/videos/challenges.mp4",
-            duration: 680,
-            createdAt: "2023-08-05T16:20:00Z",
-          },
-        };
+    if (id) {
+      fetchVideo(id);
+    }
+  }, [id, user]);
 
-        // Simulate API delay
-        setTimeout(() => {
-          if (id && dummyVideos[id]) {
-            setVideo(dummyVideos[id]);
-            setLoading(false);
-          } else {
-            setError("Video not found");
-            setLoading(false);
-          }
-        }, 1000);
-      } catch (err) {
-        setError("Failed to load video. Please try again later.");
-        setLoading(false);
+  const fetchVideo = async (videoId: string) => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const { data, error } = await supabase
+        .from("videos")
+        .select(`
+          *,
+          projects (id, title)
+        `)
+        .eq("id", videoId)
+        .single();
+
+      if (error) {
+        throw error;
       }
-    };
 
-    fetchVideo();
-  }, [id]);
+      // Format the data to match our interface
+      const formattedVideo = {
+        ...data,
+        project: data.projects,
+        project_id: data.project_id
+      };
 
-  const handleBack = () => {
-    navigate(-1);
+      setVideo(formattedVideo);
+    } catch (err) {
+      console.error("Error fetching video:", err);
+      setError("Failed to load video. Please try again later.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!window.confirm("Are you sure you want to delete this video? This action cannot be undone.")) {
+      return;
+    }
+
+    try {
+      setIsDeleting(true);
+
+      const { error } = await supabase
+        .from("videos")
+        .delete()
+        .eq("id", id);
+
+      if (error) {
+        throw error;
+      }
+
+      // If video is part of a project, navigate to project page, otherwise to videos list
+      if (video?.project_id) {
+        navigate(`/projects/${video.project_id}`);
+      } else {
+        navigate("/videos");
+      }
+    } catch (err) {
+      console.error("Error deleting video:", err);
+      setError("Failed to delete video. Please try again.");
+      setIsDeleting(false);
+    }
   };
 
   const formatDate = (dateString: string) => {
@@ -91,6 +105,29 @@ const VideoDetail: React.FC = () => {
     });
   };
 
+  const formatFileSize = (bytes?: number | null) => {
+    if (!bytes) return "Unknown size";
+    const mb = bytes / (1024 * 1024);
+    return mb < 1 ? `${(mb * 1000).toFixed(0)} KB` : `${mb.toFixed(1)} MB`;
+  };
+
+  const getStatusClass = (status: string) => {
+    switch (status) {
+      case "uploaded":
+        return "status-uploaded";
+      case "transcribing":
+        return "status-transcribing";
+      case "processing":
+        return "status-processing";
+      case "completed":
+        return "status-completed";
+      case "failed":
+        return "status-failed";
+      default:
+        return "";
+    }
+  };
+
   if (loading) {
     return <div className="loading">Loading video...</div>;
   }
@@ -99,7 +136,7 @@ const VideoDetail: React.FC = () => {
     return (
       <div className="error-container">
         <div className="error-message">{error || "Video not found"}</div>
-        <button onClick={handleBack} className="button button-secondary">
+        <button onClick={() => navigate(-1)} className="button button-secondary">
           Go Back
         </button>
       </div>
@@ -108,35 +145,83 @@ const VideoDetail: React.FC = () => {
 
   return (
     <div className="video-detail-page">
-      <button onClick={handleBack} className="back-button">
-        &larr; Back to Videos
-      </button>
+      <div className="video-detail-header">
+        <button onClick={() => navigate(-1)} className="back-button">
+          &larr; Back
+        </button>
+        
+        {video.project && (
+          <div className="video-project-info">
+            <span>Project: </span>
+            <Link to={`/projects/${video.project_id}`} className="project-link">
+              {video.project.title}
+            </Link>
+          </div>
+        )}
+      </div>
       
       <div className="video-player-container">
-        <div className="video-player">
-          {/* In a real app, this would be a video player component */}
+        {video.file_url ? (
+          <video 
+            className="video-player" 
+            src={video.file_url} 
+            controls 
+            poster={video.file_url ? undefined : "/video-placeholder.jpg"}
+          >
+            Your browser does not support the video tag.
+          </video>
+        ) : (
           <div className="video-placeholder">
             <div className="video-placeholder-text">
-              Video Player: {video.title}
+              No video available
             </div>
           </div>
-        </div>
+        )}
       </div>
 
       <div className="video-info-container">
-        <h1 className="video-title">{video.title}</h1>
-        <p className="video-meta">Uploaded on {formatDate(video.createdAt)}</p>
+        <div className="video-title-row">
+          <h1 className="video-title">{video.title}</h1>
+          <span className={`video-status ${getStatusClass(video.status)}`}>
+            {video.status}
+          </span>
+        </div>
+        
+        <div className="video-meta">
+          <span>Uploaded on {formatDate(video.created_at)}</span>
+          {video.file_size && (
+            <span className="video-size">{formatFileSize(video.file_size)}</span>
+          )}
+        </div>
         
         <div className="video-actions">
-          <button className="button">Edit Video</button>
-          <button className="button button-secondary">Share</button>
-          <button className="button button-danger">Delete</button>
+          <Link to={`/videos/${id}/edit`} className="button">
+            Edit Video
+          </Link>
+          
+          {video.status === "uploaded" && (
+            <button className="button button-secondary">
+              Start Transcription
+            </button>
+          )}
+          
+          <button 
+            className="button button-danger" 
+            onClick={handleDelete}
+            disabled={isDeleting}
+          >
+            {isDeleting ? "Deleting..." : "Delete Video"}
+          </button>
         </div>
 
-        <div className="video-description">
-          <h2>Description</h2>
-          <p>{video.description}</p>
-        </div>
+        {video.description && (
+          <div className="video-description">
+            <h2>Description</h2>
+            <p>{video.description}</p>
+          </div>
+        )}
+        
+        {/* Future sections for transcripts, excerpts, etc. would go here */}
       </div>
     </div>
   );

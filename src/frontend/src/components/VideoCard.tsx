@@ -5,46 +5,86 @@ import "./VideoCard.css";
 interface VideoCardProps {
   id: string;
   title: string;
-  thumbnail?: string;
-  duration?: number;
-  createdAt: string;
+  description?: string | null;
+  file_url?: string | null;
+  file_size?: number | null;
+  status?: string;
+  created_at: string;
+  project?: { title: string } | null;
+  project_id?: string | null;
 }
 
 const VideoCard: React.FC<VideoCardProps> = ({
   id,
   title,
-  thumbnail,
-  duration,
-  createdAt,
+  description,
+  file_url,
+  file_size,
+  status,
+  created_at,
+  project,
+  project_id
 }) => {
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString();
   };
 
-  const formatDuration = (seconds?: number) => {
-    if (!seconds) return "--:--";
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = seconds % 60;
-    return `${minutes}:${remainingSeconds.toString().padStart(2, "0")}`;
+  const formatFileSize = (bytes?: number | null) => {
+    if (!bytes) return "Unknown size";
+    const mb = bytes / (1024 * 1024);
+    return mb < 1 ? `${(mb * 1000).toFixed(0)} KB` : `${mb.toFixed(1)} MB`;
+  };
+
+  const getStatusClass = (status?: string) => {
+    switch (status) {
+      case "uploaded":
+        return "status-uploaded";
+      case "transcribing":
+        return "status-transcribing";
+      case "processing":
+        return "status-processing";
+      case "completed":
+        return "status-completed";
+      case "failed":
+        return "status-failed";
+      default:
+        return "";
+    }
   };
 
   return (
     <div className="video-card">
       <Link to={`/videos/${id}`} className="video-card-link">
         <div className="video-thumbnail">
-          {thumbnail ? (
-            <img src={thumbnail} alt={title} />
+          {file_url ? (
+            <div className="has-video">
+              <div className="play-icon">▶</div>
+            </div>
           ) : (
             <div className="thumbnail-placeholder">
-              <span>No Preview</span>
+              <span>No Video</span>
             </div>
           )}
-          {duration && <span className="video-duration">{formatDuration(duration)}</span>}
+          {status && <span className={`video-status ${getStatusClass(status)}`}>{status}</span>}
         </div>
         <div className="video-info">
           <h3 className="video-title">{title}</h3>
-          <p className="video-date">Added on {formatDate(createdAt)}</p>
+          {description && <p className="video-description">{description}</p>}
+          
+          <div className="video-meta">
+            {file_size && <span className="video-size">{formatFileSize(file_size)}</span>}
+            <span className="video-date">Added on {formatDate(created_at)}</span>
+          </div>
+          
+          {project && (
+            <div className="video-project">
+              <span className="project-label">Project:</span>
+              <Link to={`/projects/${project_id}`} className="project-link" onClick={(e) => e.stopPropagation()}>
+                {project.title}
+              </Link>
+            </div>
+          )}
         </div>
       </Link>
     </div>
